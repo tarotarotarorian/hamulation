@@ -446,10 +446,11 @@ export default function WhiteningSimulator() {
 
             <div className="hm-clinics">
               {CLINICS.map((c) => (
-                <div key={c.name} style={{ background: C.card, borderRadius: 18, padding: 18, border: `1px solid ${C.line}` }}>
+                <div key={c.name} style={{ position: "relative", background: C.card, borderRadius: 18, padding: 18, border: `1px dashed ${C.goldLight}` }}>
+                  <div style={{ position: "absolute", top: -9, left: 14, fontSize: 9.5, fontWeight: 900, letterSpacing: 1.5, color: "#fff", background: C.sub, borderRadius: 999, padding: "3px 10px" }}>SAMPLE</div>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                     <div>
-                      <div style={{ fontSize: 14.5, fontWeight: 700 }}>{c.name}</div>
+                      <div style={{ fontSize: 14.5, fontWeight: 700 }}>{c.name}<span style={{ fontSize: 10.5, fontWeight: 700, color: C.sub, marginLeft: 6 }}>(サンプル)</span></div>
                       <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>{c.area}・{c.note}</div>
                     </div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: C.goldDark, background: C.champagne, border: `1px solid ${C.line}`, borderRadius: 8, padding: "4px 8px", height: "fit-content", whiteSpace: "nowrap" }}>{c.tag}</div>
@@ -459,15 +460,15 @@ export default function WhiteningSimulator() {
                       <span style={{ color: C.gold, fontWeight: 700 }}>★ {c.rating}</span>
                       <span style={{ marginLeft: 10, fontWeight: 700 }}>{c.price}</span>
                     </div>
-                    <button style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, border: "none", color: "#fff", fontWeight: 900, fontSize: 12, borderRadius: 999, padding: "9px 18px" }}>
-                      予約ページへ
+                    <button disabled aria-disabled="true" style={{ background: C.line, border: "none", color: C.sub, fontWeight: 900, fontSize: 12, borderRadius: 999, padding: "9px 18px", cursor: "default" }}>
+                      掲載準備中
                     </button>
                   </div>
                 </div>
               ))}
             </div>
             <p style={{ fontSize: 10, color: C.sub, lineHeight: 1.6, marginTop: 16 }}>
-              ※掲載情報はサンプル(ダミー)です。※本アプリのシミュレーションは演出であり、実際の施術効果を保証するものではありません。
+              ※上記の店舗情報は表示イメージ用のサンプル(架空)です。実在の店舗・料金とは関係ありません。提携店舗の掲載準備が整い次第、順次差し替えます。※本アプリのシミュレーションは演出であり、実際の施術効果を保証するものではありません。
             </p>
           </div>
         </main>
