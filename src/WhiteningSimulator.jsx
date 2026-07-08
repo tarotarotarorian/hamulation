@@ -1,12 +1,16 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 /* ------------------------------------------------------------------
-   ホワイトニングシミュレーター サンプルアプリ (Phase 0)
+   ハミュレーション — ホワイトニングシミュレーター (Phase 0)
    - TOP: 地域のおすすめクリニック(ダミー) + シミュレーター導線
    - シミュレーター: 画像アップロード or インカメラ → 歯の色調補正
    - 方式(オフィス/ホーム/セルフ) × 回数 で白さが変化
    - Before/After スライダー + シェードガイド表示
    ------------------------------------------------------------------ */
+
+/* ロゴ画像。public/logo.png を置けば自動で表示に切り替わる。
+   未設定(空文字)の場合はテキストロゴ「ハミュレーション」を表示。 */
+const LOGO_SRC = "/logo.png";
 
 const C = {
   bg: "#F6FAF9",
@@ -39,10 +43,10 @@ const METHODS = [
 ];
 
 const CLINICS = [
-  { name: "おうみ湖畔デンタルクリニック", area: "大津市・膳所", tag: "オフィス", price: "¥16,500〜", rating: 4.7, note: "駅徒歩3分 / 平日20時まで" },
-  { name: "くさつホワイトニングサロン LUMO", area: "草津市・草津駅前", tag: "セルフ", price: "¥4,980〜", rating: 4.5, note: "初回半額 / 当日予約OK" },
-  { name: "びわこ中央歯科", area: "大津市・浜大津", tag: "ホーム", price: "¥27,500〜", rating: 4.6, note: "マウスピース即日作成" },
-  { name: "南草津スマイル歯科", area: "草津市・南草津", tag: "オフィス", price: "¥19,800〜", rating: 4.4, note: "土日診療 / 駐車場あり" },
+  { name: "表参道ホワイトニングデンタル", area: "渋谷区・表参道", tag: "オフィス", price: "¥16,500〜", rating: 4.7, note: "駅徒歩3分 / 平日21時まで" },
+  { name: "銀座スマイルホワイトニング", area: "中央区・銀座", tag: "セルフ", price: "¥4,980〜", rating: 4.5, note: "初回半額 / 当日予約OK" },
+  { name: "新宿中央歯科クリニック", area: "新宿区・新宿三丁目", tag: "ホーム", price: "¥27,500〜", rating: 4.6, note: "マウスピース即日作成" },
+  { name: "池袋ホワイトデンタルオフィス", area: "豊島区・池袋", tag: "オフィス", price: "¥19,800〜", rating: 4.4, note: "土日診療 / 夜間対応" },
 ];
 
 /* --- 歯っぽいピクセルの判定(簡易ヒューリスティック) --- */
@@ -104,6 +108,7 @@ export default function WhiteningSimulator() {
   const [imgStatus, setImgStatus] = useState("");
   const [mouth, setMouth] = useState({ cx: 0.5, cy: 0.62, r: 0.16 }); // 口元エリア(相対座標)
   const [editMode, setEditMode] = useState("area"); // area(エリア調整) | compare(比較)
+  const [showAreaNote, setShowAreaNote] = useState(false); // エリア選択の案内モーダル
 
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
@@ -278,15 +283,24 @@ export default function WhiteningSimulator() {
 
       {/* ---------- ヘッダー ---------- */}
       <header style={{ padding: "16px 20px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div>
-          <div style={{ fontWeight: 900, fontSize: 20, letterSpacing: 0.5 }}>
-            <span style={{ color: C.teal }}>ハミル</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: C.sub, marginLeft: 8 }}>歯の未来をシミュレーション</span>
-          </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          {LOGO_SRC ? (
+            <img src={LOGO_SRC} alt="ハミュレーション — 歯の未来をシミュレーション" style={{ height: 30, width: "auto", maxWidth: "62vw", display: "block", objectFit: "contain" }} />
+          ) : (
+            <>
+              <div style={{ fontWeight: 900, fontSize: 20, letterSpacing: 0.5 }}>
+                <span style={{ color: C.teal }}>ハミュレーション</span>
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 700, color: C.sub }}>歯の未来をシミュレーション</span>
+            </>
+          )}
         </div>
-        <div style={{ fontSize: 11, background: C.mint, color: C.tealDark, borderRadius: 999, padding: "6px 12px", fontWeight: 700 }}>
-          📍 滋賀県 大津市
-        </div>
+        <button
+          onClick={() => setShowAreaNote(true)}
+          style={{ fontSize: 11, background: C.mint, color: C.tealDark, borderRadius: 999, padding: "6px 12px", fontWeight: 700, border: "none" }}
+        >
+          📍 エリアを選択
+        </button>
       </header>
 
       {screen === "home" && (
@@ -306,24 +320,10 @@ export default function WhiteningSimulator() {
             <div style={{ fontSize: 13, marginTop: 8, opacity: 0.92 }}>あなたの写真で、白くなった歯を今すぐ体験 →</div>
           </button>
 
-          <div
-            style={{
-              width: "100%", background: C.card, border: `1.5px dashed ${C.line}`,
-              borderRadius: 20, padding: "16px 20px", marginBottom: 24,
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 900, color: C.sub }}>矯正シミュレーター</div>
-              <div style={{ fontSize: 12, color: C.sub, marginTop: 2 }}>理想の歯並びをAIで生成</div>
-            </div>
-            <div style={{ fontSize: 11, fontWeight: 700, background: "#F0F4F3", color: C.sub, borderRadius: 999, padding: "6px 12px" }}>近日公開</div>
-          </div>
-
           {/* ---------- 地域のおすすめ ---------- */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 24, marginBottom: 12 }}>
             <h2 style={{ fontSize: 16, fontWeight: 900, margin: 0 }}>近くのおすすめ</h2>
-            <span style={{ fontSize: 11, color: C.sub }}>大津・草津エリア</span>
+            <span style={{ fontSize: 11, color: C.sub }}>東京エリア</span>
           </div>
 
           {CLINICS.map((c) => (
@@ -503,6 +503,37 @@ export default function WhiteningSimulator() {
           )}
         </main>
       )}
+
+      {/* ---------- エリア選択モーダル(準備中の案内) ---------- */}
+      {showAreaNote && (
+        <div
+          onClick={() => setShowAreaNote(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 24 }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 20, padding: 24, maxWidth: 320, width: "100%" }}>
+            <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 8 }}>エリア選択は準備中です</div>
+            <p style={{ fontSize: 13, color: C.sub, lineHeight: 1.7, margin: "0 0 16px" }}>
+              現在は東京エリアの店舗情報を掲載しています。他エリアは順次拡大予定です。
+            </p>
+            <button
+              onClick={() => setShowAreaNote(false)}
+              style={{ width: "100%", background: C.teal, border: "none", color: "#fff", fontWeight: 900, fontSize: 14, borderRadius: 12, padding: "12px 0" }}
+            >
+              閉じる
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ---------- フッター ---------- */}
+      <footer style={{ padding: "24px 20px 40px", textAlign: "center" }}>
+        <div style={{ fontSize: 11, color: C.sub, display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap" }}>
+          <a href="/privacy.html" style={{ color: C.sub }}>プライバシーポリシー</a>
+          <a href="/terms.html" style={{ color: C.sub }}>免責事項</a>
+          <a href="/about.html" style={{ color: C.sub }}>運営者情報</a>
+        </div>
+        <div style={{ fontSize: 10, color: C.sub, marginTop: 10 }}>© 2026 ハミュレーション</div>
+      </footer>
     </div>
   );
 }
