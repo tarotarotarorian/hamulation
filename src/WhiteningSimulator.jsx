@@ -301,18 +301,29 @@ export default function WhiteningSimulator() {
       <style>{`
         button { cursor: pointer; font-family: inherit; }
         button:focus-visible { outline: 3px solid ${C.goldLight}; outline-offset: 2px; }
-        .hm-container { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
-        .hm-hero { display: grid; grid-template-columns: 1fr; gap: 28px; align-items: center; padding: 36px 0 44px; }
+        .hm-container { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+        .hm-hero { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: center; padding: 16px 0 24px; }
         .hm-hero-img { display: none; }
         .hm-hero-img-mobile { display: block; }
-        .hm-steps { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        .hm-lead-pc { display: none; }
+        .hm-steps { display: grid; grid-template-columns: 1fr; gap: 12px; }
         .hm-clinics { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        .hm-step-card { transition: transform .18s ease; }
+        .hm-cta { position: relative; overflow: hidden; }
+        .hm-cta::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 42%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+          animation: hmShine 2.6s ease-in-out infinite; }
+        .hm-sparkle { position: absolute; pointer-events: none; animation: hmFloat 2.8s ease-in-out infinite alternate; }
+        @keyframes hmShine { 0% { transform: translateX(-130%) skewX(-20deg); } 55%, 100% { transform: translateX(280%) skewX(-20deg); } }
+        @keyframes hmFloat { from { transform: translateY(0) rotate(-4deg); } to { transform: translateY(-9px) rotate(6deg); } }
         @media (min-width: 880px) {
-          .hm-hero { grid-template-columns: 1.05fr 0.95fr; gap: 48px; padding: 56px 0 64px; }
+          .hm-hero { grid-template-columns: 1.08fr 0.92fr; gap: 40px; padding: 26px 0 30px; }
           .hm-hero-img { display: block; }
           .hm-hero-img-mobile { display: none; }
-          .hm-steps { grid-template-columns: repeat(3, 1fr); gap: 20px; }
-          .hm-clinics { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+          .hm-lead-pc { display: block; }
+          .hm-steps { grid-template-columns: repeat(3, 1fr); gap: 14px; }
+          .hm-clinics { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+          .hm-step-card:hover { transform: translateY(-4px); }
         }
       `}</style>
 
@@ -337,85 +348,100 @@ export default function WhiteningSimulator() {
 
       {screen === "home" && (
         <main>
-          {/* ---------- ヒーロー ---------- */}
+          {/* ---------- ヒーロー(FV圧縮版) ---------- */}
           <div className="hm-container">
             <section className="hm-hero">
-              <div>
-                <div style={{ display: "inline-block", fontSize: 11, fontWeight: 700, letterSpacing: 2, color: C.goldDark, background: C.champagne, border: `1px solid ${C.goldLight}`, borderRadius: 999, padding: "6px 14px", marginBottom: 18 }}>
-                  無料・登録不要・写真は端末内処理
+              <div style={{ position: "relative" }}>
+                <img className="hm-sparkle" src="/favicon.png" alt="" aria-hidden="true" style={{ width: 22, top: -4, right: 8, opacity: 0.9 }} />
+                <div style={{ display: "inline-block", fontSize: 10.5, fontWeight: 700, letterSpacing: 1.5, color: C.goldDark, background: C.champagne, border: `1px solid ${C.goldLight}`, borderRadius: 999, padding: "5px 12px", marginBottom: 12 }}>
+                  歯のホワイトニング・シミュレーター
                 </div>
-                <h1 style={{ fontFamily: SERIF, fontSize: "clamp(28px, 4.6vw, 44px)", fontWeight: 600, lineHeight: 1.4, letterSpacing: 1, margin: "0 0 14px" }}>
+                <h1 style={{ fontFamily: SERIF, fontSize: "clamp(25px, 3.4vw, 36px)", fontWeight: 600, lineHeight: 1.42, letterSpacing: 1, margin: "0 0 10px" }}>
                   白い歯の自分に、<br />ひと足先に会いにいく。
                 </h1>
-                <p style={{ fontSize: 14, color: C.sub, lineHeight: 1.9, margin: "0 0 22px" }}>
+                <p className="hm-lead-pc" style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.85, margin: "0 0 16px" }}>
                   あなたの写真で、ホワイトニング後の口元をその場でシミュレーション。<br />
                   方式と回数を選ぶだけで、仕上がりの白さをイメージできます。
                 </p>
-                {HERO_SRC && (
-                  <div className="hm-hero-img-mobile" style={{ margin: "0 0 22px" }}>
-                    <img src={HERO_SRC} alt="ホワイトニングのイメージ" style={{ width: "100%", borderRadius: 20, display: "block", border: `1px solid ${C.line}` }} />
-                  </div>
-                )}
                 <button
+                  className="hm-cta"
                   onClick={goSim}
                   style={{
-                    width: "100%", maxWidth: 380, border: "none",
+                    width: "100%", maxWidth: 400, border: "none",
                     background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`,
                     borderRadius: 999, padding: "17px 28px", color: "#fff",
-                    fontWeight: 900, fontSize: 15, letterSpacing: 1,
-                    boxShadow: "0 8px 24px rgba(192,145,60,0.35)",
+                    fontWeight: 900, fontSize: 15.5, letterSpacing: 1, marginTop: 4,
+                    boxShadow: "0 8px 24px rgba(192,145,60,0.4)",
                   }}
                 >
-                  無料でシミュレーションする →
+                  ✨ 無料でシミュレーションする →
                 </button>
-                <div style={{ maxWidth: 380, marginTop: 18 }}>
-                  <ShadeStrip />
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10, maxWidth: 400 }}>
+                  {["約30秒", "無料・登録不要", "写真は端末内処理", "アプリ不要"].map((t) => (
+                    <span key={t} style={{ fontSize: 10.5, fontWeight: 700, color: C.sub, background: C.card, border: `1px solid ${C.line}`, borderRadius: 999, padding: "4px 10px" }}>✓ {t}</span>
+                  ))}
+                </div>
+                {HERO_SRC && (
+                  <div className="hm-hero-img-mobile" style={{ position: "relative", marginTop: 16 }}>
+                    <img src={HERO_SRC} alt="ホワイトニングのイメージ" style={{ width: "100%", aspectRatio: "16 / 9", objectFit: "cover", objectPosition: "center 30%", borderRadius: 18, display: "block", border: `1px solid ${C.line}` }} />
+                    <img className="hm-sparkle" src="/favicon.png" alt="" aria-hidden="true" style={{ width: 20, top: -8, left: 14 }} />
+                  </div>
+                )}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, maxWidth: 400, marginTop: 14 }}>
+                  <div style={{ flex: 1 }}><ShadeStrip /></div>
+                  <span style={{ fontSize: 10.5, color: C.sub, fontWeight: 700, whiteSpace: "nowrap" }}>白さの目安をシェードで表示</span>
                 </div>
               </div>
               {HERO_SRC && (
                 <div className="hm-hero-img" style={{ position: "relative" }}>
-                  <img src={HERO_SRC} alt="ホワイトニングのイメージ" style={{ width: "100%", borderRadius: 24, display: "block", border: `1px solid ${C.line}`, boxShadow: "0 18px 48px rgba(43,36,26,0.12)" }} />
+                  <img src={HERO_SRC} alt="ホワイトニングのイメージ" style={{ width: "100%", aspectRatio: "5 / 4", objectFit: "cover", objectPosition: "center 32%", borderRadius: 22, display: "block", border: `1px solid ${C.line}`, boxShadow: "0 16px 40px rgba(43,36,26,0.12)" }} />
+                  <img className="hm-sparkle" src="/favicon.png" alt="" aria-hidden="true" style={{ width: 30, top: -12, right: 26 }} />
+                  <img className="hm-sparkle" src="/favicon.png" alt="" aria-hidden="true" style={{ width: 18, bottom: 44, right: -6, animationDelay: "1.2s" }} />
+                  <div style={{ position: "absolute", left: 16, bottom: -14, background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: "10px 14px", boxShadow: "0 8px 20px rgba(43,36,26,0.10)", width: 210 }}>
+                    <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.5, color: C.gold, marginBottom: 5 }}>SHADE GUIDE</div>
+                    <ShadeStrip height={8} />
+                    <div style={{ fontSize: 10, color: C.sub, marginTop: 5 }}>方式×回数で白さの目安が変化</div>
+                  </div>
                 </div>
               )}
             </section>
           </div>
 
           {/* ---------- 使い方3ステップ ---------- */}
-          <section style={{ background: C.champagne, borderTop: `1px solid ${C.line}`, borderBottom: `1px solid ${C.line}`, padding: "44px 0 52px" }}>
+          <section style={{ background: C.champagne, borderTop: `1px solid ${C.line}`, borderBottom: `1px solid ${C.line}`, padding: "24px 0 28px" }}>
             <div className="hm-container">
-              <div style={{ textAlign: "center", marginBottom: 28 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: C.goldDark, marginBottom: 8 }}>HOW TO USE</div>
-                <h2 style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 600, letterSpacing: 1, margin: 0 }}>使い方は、3ステップ</h2>
-                <div style={{ maxWidth: 120, margin: "14px auto 0" }}><ShadeStrip height={4} /></div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+                <h2 style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 600, letterSpacing: 1, margin: 0 }}>使い方は、3ステップ</h2>
+                <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 2, color: C.goldDark }}>HOW TO USE</span>
+                <button
+                  onClick={goSim}
+                  style={{ marginLeft: "auto", border: `1.5px solid ${C.gold}`, background: C.card, color: C.goldDark, fontWeight: 900, fontSize: 12, borderRadius: 999, padding: "8px 20px", letterSpacing: 1 }}
+                >
+                  さっそく試す →
+                </button>
               </div>
               <div className="hm-steps">
                 {HOWTO_STEPS.map((s, i) => (
-                  <div key={s.title} style={{ background: C.card, borderRadius: 20, overflow: "hidden", border: `1px solid ${C.line}` }}>
-                    <img src={s.img} alt={`STEP${i + 1} ${s.title}`} style={{ width: "100%", display: "block", aspectRatio: "4 / 3", objectFit: "cover" }} loading="lazy" />
-                    <div style={{ padding: "16px 18px 20px" }}>
-                      <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 2, color: C.gold, marginBottom: 4 }}>STEP {i + 1}</div>
-                      <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 600, marginBottom: 6 }}>{s.title}</div>
-                      <p style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.8, margin: 0 }}>{s.desc}</p>
+                  <div key={s.title} className="hm-step-card" onClick={goSim} style={{ background: C.card, borderRadius: 16, overflow: "hidden", border: `1px solid ${C.line}`, cursor: "pointer" }}>
+                    <img src={s.img} alt={`STEP${i + 1} ${s.title}`} style={{ width: "100%", display: "block", aspectRatio: "16 / 9", objectFit: "cover" }} loading="lazy" />
+                    <div style={{ padding: "10px 14px 14px", display: "flex", gap: 10, alignItems: "flex-start" }}>
+                      <div style={{ flexShrink: 0, width: 26, height: 26, borderRadius: 999, background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", fontSize: 12, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2 }}>{i + 1}</div>
+                      <div>
+                        <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 600, marginBottom: 3 }}>{s.title}</div>
+                        <p style={{ fontSize: 11.5, color: C.sub, lineHeight: 1.7, margin: 0 }}>{s.desc}</p>
+                      </div>
                     </div>
                   </div>
                 ))}
-              </div>
-              <div style={{ textAlign: "center", marginTop: 26 }}>
-                <button
-                  onClick={goSim}
-                  style={{ border: `1.5px solid ${C.gold}`, background: C.card, color: C.goldDark, fontWeight: 900, fontSize: 13, borderRadius: 999, padding: "13px 32px", letterSpacing: 1 }}
-                >
-                  さっそく試してみる →
-                </button>
               </div>
             </div>
           </section>
 
           {/* ---------- 地域のおすすめ ---------- */}
-          <div className="hm-container" style={{ paddingTop: 40, paddingBottom: 48 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
-              <h2 style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 600, letterSpacing: 1, margin: 0 }}>近くのおすすめ</h2>
-              <span style={{ fontSize: 11, color: C.sub }}>東京エリア</span>
+          <div className="hm-container" style={{ paddingTop: 26, paddingBottom: 40 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
+              <h2 style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 600, letterSpacing: 1, margin: 0 }}>近くのおすすめ</h2>
+              <span style={{ fontSize: 11, color: C.sub }}>東京エリア・4店舗</span>
             </div>
 
             <div className="hm-clinics">
