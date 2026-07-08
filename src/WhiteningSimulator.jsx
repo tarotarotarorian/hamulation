@@ -52,6 +52,34 @@ const CLINICS = [
   { name: "池袋ホワイトデンタルオフィス", area: "豊島区・池袋", tag: "オフィス", price: "¥19,800〜", rating: 4.4, note: "土日診療 / 夜間対応" },
 ];
 
+const METHOD_GUIDE = [
+  {
+    id: "office", icon: "/method1.png", name: "オフィスホワイトニング", place: "歯科医院",
+    body: "歯科医院で歯科医師・歯科衛生士が行うホワイトニング。医療機関でのみ扱える高濃度の薬剤を使用するため、比較的少ない回数で変化を実感しやすいとされています。施術前に歯や歯ぐきの状態をチェックしてもらえるのも安心なポイントです。",
+    price: "1回 約1〜7万円", fit: "イベント前など、早めに変化を感じたい人",
+  },
+  {
+    id: "home", icon: "/method2.png", name: "ホームホワイトニング", place: "自宅(マウスピース)",
+    body: "歯科医院で自分専用のマウスピースを作り、自宅で低濃度の薬剤を使って少しずつ白くしていく方法。時間はかかりますが、自分のペースで続けられ、白さが持続しやすいと言われています。オフィスとの併用(デュアル)も人気です。",
+    price: "約1.5〜5万円(マウスピース+薬剤)", fit: "通院の時間が取りにくい人・じっくり続けたい人",
+  },
+  {
+    id: "self", icon: "/method3.png", name: "セルフホワイトニング", place: "サロン",
+    body: "サロンなどで、自分で薬剤を塗って光を当てるスタイル。医療行為ではないため薬剤はマイルドで、歯の表面の着色汚れ(ステイン)のケアが中心です。1回あたりの価格が手頃で、気軽に始めやすいのが魅力です。",
+    price: "1回 約3千〜1万円", fit: "まずは気軽に試してみたい人",
+  },
+];
+
+const FAQS = [
+  { q: "シミュレーションは無料ですか?", a: "はい、無料・会員登録不要でご利用いただけます。アプリのインストールも不要で、スマホやPCのブラウザだけで動きます。" },
+  { q: "アップロードした写真はどこかに送信されますか?", a: "いいえ。写真はお使いの端末(ブラウザ)の中だけで処理され、サーバーには一切送信・保存されません。安心してお試しください。" },
+  { q: "シミュレーション通りの白さになりますか?", a: "シミュレーションはあくまで画像加工によるイメージ演出です。実際の施術効果や到達シェードを保証するものではなく、歯の状態や施術内容によって結果は異なります。「なりたい白さのイメージづくり」の目安としてお使いください。" },
+  { q: "きれいにシミュレーションするコツはありますか?", a: "明るい場所で撮った、歯がしっかり見える笑顔の写真がおすすめです。正面から撮影し、口元にピントが合っていると、歯色の検出精度が上がります。" },
+  { q: "iPhoneで写真が読み込めません", a: "iPhoneの標準設定(HEIC形式)で撮影された写真は読み込めない場合があります。その写真のスクリーンショットを撮って選び直すか、「設定→カメラ→フォーマット→互換性優先」に変更して撮り直すと読み込めます。" },
+  { q: "シェードガイドとは何ですか?", a: "歯科医院で使われる歯の色見本のことです。本アプリではA4(やや濃いめ)〜BL(ブリーチシェード)の8段階で白さの目安を表示しています。日本人の平均はA3前後と言われています。" },
+  { q: "ホワイトニングは誰でも受けられますか?", a: "虫歯や知覚過敏がある方、妊娠中・授乳中の方などは受けられない場合があります。また、差し歯や詰め物などの人工歯は薬剤では白くなりません。ご自身が受けられるかどうかは、歯科医師にご相談ください。" },
+];
+
 const HOWTO_STEPS = [
   { img: "/step1.jpg", title: "笑顔の写真を用意", desc: "歯が見える笑顔の写真をアップロード、またはインカメラでそのまま撮影。" },
   { img: "/step2.jpg", title: "口元を枠で指定", desc: "枠をドラッグして口元に合わせ、スライダーで大きさを調整。" },
@@ -470,6 +498,67 @@ export default function WhiteningSimulator() {
             <p style={{ fontSize: 10, color: C.sub, lineHeight: 1.6, marginTop: 16 }}>
               ※上記の店舗情報は表示イメージ用のサンプル(架空)です。実在の店舗・料金とは関係ありません。提携店舗の掲載準備が整い次第、順次差し替えます。※本アプリのシミュレーションは演出であり、実際の施術効果を保証するものではありません。
             </p>
+          </div>
+
+          {/* ---------- 方式ガイド ---------- */}
+          <section style={{ background: C.champagne, borderTop: `1px solid ${C.line}`, borderBottom: `1px solid ${C.line}`, padding: "30px 0 34px" }}>
+            <div className="hm-container">
+              <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 6, flexWrap: "wrap" }}>
+                <h2 style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 600, letterSpacing: 1, margin: 0 }}>ホワイトニング3方式のちがい</h2>
+                <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 2, color: C.goldDark }}>GUIDE</span>
+              </div>
+              <p style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.8, margin: "0 0 16px" }}>
+                ホワイトニングは大きく分けて3つの方式があります。かかる費用も白くなるペースも異なるので、自分のライフスタイルに合ったものを選ぶのがおすすめです。シミュレーターでは方式ごとの白さの目安も体験できます。
+              </p>
+              <div className="hm-steps">
+                {METHOD_GUIDE.map((g) => (
+                  <div key={g.id} style={{ background: C.card, borderRadius: 16, border: `1px solid ${C.line}`, padding: "18px 18px 16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                      <img src={g.icon} alt="" aria-hidden="true" style={{ width: 42, height: 42 }} />
+                      <div>
+                        <div style={{ fontFamily: SERIF, fontSize: 15.5, fontWeight: 600 }}>{g.name}</div>
+                        <div style={{ fontSize: 10.5, color: C.goldDark, fontWeight: 700 }}>{g.place}</div>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: 12, color: C.ink, lineHeight: 1.85, margin: "0 0 12px" }}>{g.body}</p>
+                    <div style={{ borderTop: `1px dashed ${C.line}`, paddingTop: 10, display: "grid", gap: 5 }}>
+                      <div style={{ fontSize: 11.5 }}><span style={{ fontWeight: 900, color: C.goldDark }}>料金の目安</span><span style={{ marginLeft: 8, color: C.ink, fontWeight: 700 }}>{g.price}</span></div>
+                      <div style={{ fontSize: 11.5 }}><span style={{ fontWeight: 900, color: C.goldDark }}>こんな人に</span><span style={{ marginLeft: 8, color: C.sub }}>{g.fit}</span></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontSize: 10, color: C.sub, lineHeight: 1.6, marginTop: 14, marginBottom: 0 }}>
+                ※料金は一般的な目安です。実際の料金・施術内容は各歯科医院・サロンにご確認ください。※効果の感じ方には個人差があります。
+              </p>
+            </div>
+          </section>
+
+          {/* ---------- FAQ ---------- */}
+          <div className="hm-container" style={{ paddingTop: 28, paddingBottom: 44 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+              <h2 style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 600, letterSpacing: 1, margin: 0 }}>よくある質問</h2>
+              <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 2, color: C.goldDark }}>FAQ</span>
+            </div>
+            <div style={{ display: "grid", gap: 8, maxWidth: 780 }}>
+              {FAQS.map((f) => (
+                <details key={f.q} style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: "0 16px" }}>
+                  <summary style={{ cursor: "pointer", listStyle: "none", display: "flex", alignItems: "center", gap: 10, padding: "13px 0", fontSize: 13, fontWeight: 700 }}>
+                    <span style={{ flexShrink: 0, color: C.gold, fontFamily: SERIF, fontWeight: 700 }}>Q.</span>{f.q}
+                  </summary>
+                  <p style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.9, margin: 0, padding: "0 0 14px 24px", borderTop: `1px dashed ${C.line}`, paddingTop: 12 }}>{f.a}</p>
+                </details>
+              ))}
+            </div>
+            <div style={{ marginTop: 24, textAlign: "center" }}>
+              <button
+                className="hm-cta"
+                onClick={goSim}
+                style={{ border: "none", background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", fontWeight: 900, fontSize: 14, borderRadius: 999, padding: "15px 40px", letterSpacing: 1, boxShadow: "0 8px 24px rgba(192,145,60,0.35)" }}
+              >
+                ✨ 無料でシミュレーションする →
+              </button>
+            </div>
           </div>
         </main>
       )}
