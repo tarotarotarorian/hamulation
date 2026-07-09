@@ -45,11 +45,26 @@ const METHODS = [
   { id: "self", label: "セルフ", desc: "サロンで自分で照射", perSession: 0.11, unit: "1回 = サロンでの施術1回" },
 ];
 
-const CLINICS = [
-  { name: "表参道ホワイトニングデンタル", area: "渋谷区・表参道", tag: "オフィス", price: "¥16,500〜", rating: 4.7, note: "駅徒歩3分 / 平日21時まで" },
-  { name: "銀座スマイルホワイトニング", area: "中央区・銀座", tag: "セルフ", price: "¥4,980〜", rating: 4.5, note: "初回半額 / 当日予約OK" },
-  { name: "新宿中央歯科クリニック", area: "新宿区・新宿三丁目", tag: "ホーム", price: "¥27,500〜", rating: 4.6, note: "マウスピース即日作成" },
-  { name: "池袋ホワイトデンタルオフィス", area: "豊島区・池袋", tag: "オフィス", price: "¥19,800〜", rating: 4.4, note: "土日診療 / 夜間対応" },
+/* 提携プログラム(A8.net)。href=アフィリエイトリンク / pixel=インプレッション計測用1x1画像 */
+const AFFILIATES = [
+  {
+    name: "スターホワイトニング",
+    area: "東京(新宿・銀座・池袋・渋谷ほか)・横浜・大阪など全国",
+    tag: "オフィス",
+    price: "1回 ¥2,950(税込)",
+    note: "歯科医師・歯科衛生士による施術 / 初回全額返金保証付",
+    href: "https://px.a8.net/svt/ejp?a8mat=4B7WD2+DEUMP6+4466+5ZEMQ",
+    pixel: "https://www19.a8.net/0.gif?a8mat=4B7WD2+DEUMP6+4466+5ZEMQ",
+  },
+  {
+    name: "ホワイトマイスター",
+    area: "東京・表参道",
+    tag: "オフィス",
+    price: "料金は公式サイトにて",
+    note: "表参道のホワイトニング専門歯科",
+    href: "https://px.a8.net/svt/ejp?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE",
+    pixel: "https://www19.a8.net/0.gif?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE",
+  },
 ];
 
 const METHOD_GUIDE = [
@@ -156,7 +171,6 @@ export default function WhiteningSimulator() {
   const [imgStatus, setImgStatus] = useState("");
   const [mouth, setMouth] = useState({ cx: 0.5, cy: 0.62, r: 0.16 }); // 口元エリア(相対座標)
   const [editMode, setEditMode] = useState("area"); // area(エリア調整) | compare(比較)
-  const [showAreaNote, setShowAreaNote] = useState(false); // エリア選択の案内モーダル
 
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
@@ -401,12 +415,14 @@ export default function WhiteningSimulator() {
               <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 20, letterSpacing: 1, color: C.gold }}>ハミュレーション</div>
             )}
           </div>
-          <button
-            onClick={() => setShowAreaNote(true)}
-            style={{ fontSize: 11, background: C.champagne, color: C.goldDark, borderRadius: 999, padding: "7px 14px", fontWeight: 700, border: `1px solid ${C.goldLight}` }}
-          >
-            📍 エリアを選択
-          </button>
+          {screen === "home" && (
+            <button
+              onClick={goSim}
+              style={{ fontSize: 11, background: C.champagne, color: C.goldDark, borderRadius: 999, padding: "7px 14px", fontWeight: 700, border: `1px solid ${C.goldLight}` }}
+            >
+              ✨ 無料で試す
+            </button>
+          )}
         </div>
       </header>
 
@@ -501,38 +517,41 @@ export default function WhiteningSimulator() {
             </div>
           </section>
 
-          {/* ---------- 地域のおすすめ ---------- */}
+          {/* ---------- 提携クリニック(アフィリエイト) ---------- */}
           <div className="hm-container" style={{ paddingTop: 26, paddingBottom: 40 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
-              <h2 style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 600, letterSpacing: 1, margin: 0 }}>近くのおすすめ</h2>
-              <span style={{ fontSize: 11, color: C.sub }}>東京エリア・4店舗</span>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+              <h2 style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 600, letterSpacing: 1, margin: 0 }}>ホワイトニングができるクリニック</h2>
+              <span style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 1.5, color: C.sub, border: `1px solid ${C.line}`, borderRadius: 6, padding: "2px 7px" }}>PR</span>
             </div>
 
             <div className="hm-clinics">
-              {CLINICS.map((c) => (
-                <div key={c.name} style={{ position: "relative", background: C.card, borderRadius: 18, padding: 18, border: `1px dashed ${C.goldLight}` }}>
-                  <div style={{ position: "absolute", top: -9, left: 14, fontSize: 9.5, fontWeight: 900, letterSpacing: 1.5, color: "#fff", background: C.sub, borderRadius: 999, padding: "3px 10px" }}>SAMPLE</div>
+              {AFFILIATES.map((c) => (
+                <div key={c.name} style={{ background: C.card, borderRadius: 18, padding: 18, border: `1px solid ${C.line}` }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                     <div>
-                      <div style={{ fontSize: 14.5, fontWeight: 700 }}>{c.name}<span style={{ fontSize: 10.5, fontWeight: 700, color: C.sub, marginLeft: 6 }}>(サンプル)</span></div>
-                      <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>{c.area}・{c.note}</div>
+                      <div style={{ fontSize: 15, fontWeight: 700 }}>{c.name}</div>
+                      <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>{c.area}</div>
+                      <div style={{ fontSize: 11.5, color: C.ink, marginTop: 5 }}>{c.note}</div>
                     </div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: C.goldDark, background: C.champagne, border: `1px solid ${C.line}`, borderRadius: 8, padding: "4px 8px", height: "fit-content", whiteSpace: "nowrap" }}>{c.tag}</div>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
-                    <div style={{ fontSize: 13 }}>
-                      <span style={{ color: C.gold, fontWeight: 700 }}>★ {c.rating}</span>
-                      <span style={{ marginLeft: 10, fontWeight: 700 }}>{c.price}</span>
-                    </div>
-                    <button disabled aria-disabled="true" style={{ background: C.line, border: "none", color: C.sub, fontWeight: 900, fontSize: 12, borderRadius: 999, padding: "9px 18px", cursor: "default" }}>
-                      掲載準備中
-                    </button>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, gap: 10, flexWrap: "wrap" }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 900, color: C.goldDark }}>{c.price}</div>
+                    <a
+                      href={c.href}
+                      target="_blank"
+                      rel="nofollow sponsored noopener"
+                      style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", fontWeight: 900, fontSize: 12.5, borderRadius: 999, padding: "10px 20px", textDecoration: "none", boxShadow: "0 4px 12px rgba(192,145,60,0.3)" }}
+                    >
+                      公式サイトで予約 →
+                    </a>
+                    <img src={c.pixel} alt="" width="1" height="1" style={{ border: 0, position: "absolute", opacity: 0 }} />
                   </div>
                 </div>
               ))}
             </div>
             <p style={{ fontSize: 10, color: C.sub, lineHeight: 1.6, marginTop: 16 }}>
-              ※上記の店舗情報は表示イメージ用のサンプル(架空)です。実在の店舗・料金とは関係ありません。提携店舗の掲載準備が整い次第、順次差し替えます。※本アプリのシミュレーションは演出であり、実際の施術効果を保証するものではありません。
+              ※当セクションはアフィリエイト広告(A8.net)を利用しています。※料金・キャンペーン等の最新情報は各公式サイトにてご確認ください。※本アプリのシミュレーションは演出であり、実際の施術効果を保証するものではありません。
             </p>
           </div>
 
@@ -753,27 +772,6 @@ export default function WhiteningSimulator() {
             </>
           )}
         </main>
-      )}
-
-      {/* ---------- エリア選択モーダル(準備中の案内) ---------- */}
-      {showAreaNote && (
-        <div
-          onClick={() => setShowAreaNote(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(43,36,26,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 24 }}
-        >
-          <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 20, padding: 24, maxWidth: 320, width: "100%" }}>
-            <div style={{ fontFamily: SERIF, fontWeight: 600, fontSize: 17, marginBottom: 8 }}>エリア選択は準備中です</div>
-            <p style={{ fontSize: 13, color: C.sub, lineHeight: 1.7, margin: "0 0 16px" }}>
-              現在は東京エリアの店舗情報を掲載しています。他エリアは順次拡大予定です。
-            </p>
-            <button
-              onClick={() => setShowAreaNote(false)}
-              style={{ width: "100%", background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, border: "none", color: "#fff", fontWeight: 900, fontSize: 14, borderRadius: 12, padding: "12px 0" }}
-            >
-              閉じる
-            </button>
-          </div>
-        </div>
       )}
 
       {/* ---------- フッター ---------- */}
