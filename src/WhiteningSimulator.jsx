@@ -28,6 +28,13 @@ const C = {
 
 const SERIF = "'Shippori Mincho','Hiragino Mincho ProN',serif";
 
+/* --- GA4イベント送信(gtag未読込時は何もしない) --- */
+function track(name, params) {
+  if (typeof window !== "undefined" && typeof window.gtag === "function") {
+    window.gtag("event", name, params || {});
+  }
+}
+
 const SHADES = [
   { name: "A4", hex: "#C9A57B" },
   { name: "A3.5", hex: "#D3B189" },
@@ -257,6 +264,7 @@ export default function WhiteningSimulator() {
         setEditMode("area");
         setMouth({ cx: 0.5, cy: 0.62, r: 0.16 });
         setImgSrc(reader.result);
+        track("sim_photo_loaded", { source: "upload" });
       };
       img.onerror = () =>
         setImgStatus("この画像形式を表示できませんでした(iPhoneのHEIC形式の可能性)。スクリーンショットを撮ってその画像を選ぶか、設定→カメラ→フォーマットを「互換性優先」にして撮影し直すと読み込めます。");
@@ -318,6 +326,7 @@ export default function WhiteningSimulator() {
       setMouth({ cx: 0.5, cy: 0.62, r: 0.16 });
       setImgSrc(url);
       stopCamera();
+      track("sim_photo_loaded", { source: "camera" });
     };
     img.src = url;
   };
@@ -369,7 +378,7 @@ export default function WhiteningSimulator() {
   const onMove = (e) => { if (dragRef.current) applyPointer(e); };
   const onUp = () => { dragRef.current = false; };
 
-  const goSim = () => { setScreen("sim"); window.scrollTo(0, 0); };
+  const goSim = () => { setScreen("sim"); window.scrollTo(0, 0); track("sim_open"); };
 
   /* ================= UI ================= */
   const font = { fontFamily: "'Zen Kaku Gothic New','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif" };
@@ -541,6 +550,7 @@ export default function WhiteningSimulator() {
                       href={c.href}
                       target="_blank"
                       rel="nofollow sponsored noopener"
+                      onClick={() => track("affiliate_click", { clinic: c.name })}
                       style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", fontWeight: 900, fontSize: 12.5, borderRadius: 999, padding: "10px 20px", textDecoration: "none", boxShadow: "0 4px 12px rgba(192,145,60,0.3)" }}
                     >
                       公式サイトで予約 →
@@ -685,7 +695,7 @@ export default function WhiteningSimulator() {
                     style={{ width: "100%", accentColor: C.gold }}
                   />
                   <button
-                    onClick={() => setEditMode("compare")}
+                    onClick={() => { setEditMode("compare"); track("sim_compare", { method, sessions }); }}
                     style={{ width: "100%", marginTop: 10, background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, border: "none", color: "#fff", fontWeight: 900, fontSize: 14, borderRadius: 12, padding: "13px 0" }}
                   >
                     ② この範囲でシミュレーション開始
