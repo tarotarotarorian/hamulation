@@ -46,10 +46,15 @@ const SHADES = [
   { name: "BL", hex: "#FAF3E3" },
 ];
 
+/* 方式別の到達上限 maxIdx (SHADESのindex):
+   - オフィス/ホーム: 6 = B1(歯科医院では過酸化物による漂白が可能)
+   - セルフ: 4 = A1(非医療サロンは過酸化物を使えず歯そのものを漂白できない。
+     着色除去で「本来の歯の色に戻る」イメージが上限)
+   ※セルフの上限(maxIdx)を上げる変更は景表法・優良誤認リスクがあるため禁止 */
 const METHODS = [
-  { id: "office", label: "オフィス", desc: "歯科医院で施術", perSession: 0.30, unit: "1回 = 歯科医院での施術1回" },
-  { id: "home", label: "ホーム", desc: "自宅でマウスピース", perSession: 0.17, unit: "1回 = マウスピースを約2週間連続使用した場合の目安" },
-  { id: "self", label: "セルフ", desc: "サロンで自分で照射", perSession: 0.11, unit: "1回 = サロンでの施術1回" },
+  { id: "office", label: "オフィス", desc: "歯科医院で施術", perSession: 0.30, maxIdx: 6, unit: "1回 = 歯科医院での施術1回" },
+  { id: "home", label: "ホーム", desc: "自宅でマウスピース", perSession: 0.17, maxIdx: 6, unit: "1回 = マウスピースを約2週間連続使用した場合の目安" },
+  { id: "self", label: "セルフ", desc: "サロンで自分で照射", perSession: 0.11, maxIdx: 4, unit: "1回 = サロンでの施術1回" },
 ];
 
 /* 提携プログラム(A8.net)。href=アフィリエイトリンク / pixel=インプレッション計測用1x1画像 */
@@ -58,6 +63,7 @@ const AFFILIATES = [
     name: "スターホワイトニング",
     area: "東京(新宿・銀座・池袋・渋谷ほか)・横浜・大阪など全国",
     tag: "オフィス",
+    methods: ["office"],
     price: "1回 ¥2,950(税込)",
     note: "歯科医師・歯科衛生士による施術 / 初回全額返金保証付",
     href: "https://px.a8.net/svt/ejp?a8mat=4B7WD2+DEUMP6+4466+5ZEMQ",
@@ -67,6 +73,7 @@ const AFFILIATES = [
     name: "ホワイトマイスター",
     area: "東京・表参道",
     tag: "オフィス",
+    methods: ["office"],
     price: "料金は公式サイトにて",
     note: "表参道のホワイトニング専門歯科",
     href: "https://px.a8.net/svt/ejp?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE",
@@ -98,7 +105,7 @@ const FAQS = [
   { q: "シミュレーション通りの白さになりますか?", a: "シミュレーションはあくまで画像加工によるイメージ演出です。実際の施術効果や到達シェードを保証するものではなく、歯の状態や施術内容によって結果は異なります。「なりたい白さのイメージづくり」の目安としてお使いください。" },
   { q: "きれいにシミュレーションするコツはありますか?", a: "明るい場所で撮った、歯がしっかり見える笑顔の写真がおすすめです。正面から撮影し、口元にピントが合っていると、歯色の検出精度が上がります。" },
   { q: "iPhoneで写真が読み込めません", a: "iPhoneの標準設定(HEIC形式)で撮影された写真は読み込めない場合があります。その写真のスクリーンショットを撮って選び直すか、「設定→カメラ→フォーマット→互換性優先」に変更して撮り直すと読み込めます。" },
-  { q: "シェードガイドとは何ですか?", a: "歯科医院で使われる歯の色見本のことです。本アプリではA4(やや濃いめ)〜BL(最も明るいブリーチシェード)の8段階で表示しています。日本人の平均はA3前後、自然な白さの上限はB1程度と言われているため、シミュレーションの到達目安はB1までとしています。" },
+  { q: "シェードガイドとは何ですか?", a: "歯科医院で使われる歯の色見本のことです。本アプリではA4(やや濃いめ)〜BL(最も明るいブリーチシェード)の8段階で表示しています。日本人の平均はA3前後、自然な白さの上限はB1程度と言われているため、シミュレーションの到達目安はB1までとしています。なお、セルフホワイトニングは歯そのものを漂白するものではなく表面の着色ケアが中心のため、目安の上限は「本来の歯の色(A1相当)」までとしています。" },
   { q: "ホワイトニングは誰でも受けられますか?", a: "虫歯や知覚過敏がある方、妊娠中・授乳中の方などは受けられない場合があります。また、差し歯や詰め物などの人工歯は薬剤では白くなりません。ご自身が受けられるかどうかは、歯科医師にご相談ください。" },
 ];
 
@@ -178,6 +185,8 @@ export default function WhiteningSimulator() {
   const [imgStatus, setImgStatus] = useState("");
   const [mouth, setMouth] = useState({ cx: 0.5, cy: 0.62, r: 0.16 }); // 口元エリア(相対座標)
   const [editMode, setEditMode] = useState("area"); // area(エリア調整) | compare(比較)
+  const [startShade, setStartShade] = useState(2); // 開始シェード(今の歯の色): 1=A3.5 / 2=A3(既定) / 3=A2
+  const [simIntent, setSimIntent] = useState(null); // シミュ→店舗リストへの引き継ぎ { method, methodLabel, shade }
 
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
@@ -186,10 +195,13 @@ export default function WhiteningSimulator() {
   const dragRef = useRef(false);
 
   const m = METHODS.find((x) => x.id === method);
-  const intensity = Math.min(0.85, 1 - Math.pow(1 - m.perSession, sessions));
-  const startShade = 2; // A3想定
-  // 到達目安の上限はB1(idx6)。BLはシェードガイドの表示のみで、シミュレーション上は到達しない
-  const shadeIdx = Math.min(6, startShade + Math.round(intensity * 7));
+  // 方式別の到達上限(maxIdx)で、シェードゲージと画像加工のintensityを同期してキャップする。
+  // ゲージだけ制限して画像は白いまま、という乖離(優良誤認リスク)を防ぐ。
+  const maxIdx = m.maxIdx ?? 6;
+  const rawIntensity = Math.min(0.85, 1 - Math.pow(1 - m.perSession, sessions));
+  const intensity = Math.min(rawIntensity, (maxIdx - startShade) / 7); // 画像とゲージを同期
+  const shadeIdx = Math.min(maxIdx, startShade + Math.round(intensity * 7));
+  const atSelfCeiling = m.id === "self" && rawIntensity > intensity + 0.001; // セルフ上限到達フラグ
 
   /* --- 描画 --- */
   const cacheRef = useRef({ key: "" }); // before/after のキャッシュ(スライダー操作の軽量化)
@@ -527,15 +539,26 @@ export default function WhiteningSimulator() {
           </section>
 
           {/* ---------- 提携クリニック(アフィリエイト) ---------- */}
-          <div className="hm-container" style={{ paddingTop: 26, paddingBottom: 40 }}>
+          <div id="hm-clinics" className="hm-container" style={{ paddingTop: 26, paddingBottom: 40 }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
-              <h2 style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 600, letterSpacing: 1, margin: 0 }}>ホワイトニングができるクリニック</h2>
+              <h2 style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 600, letterSpacing: 1, margin: 0 }}>ホワイトニング対応クリニック</h2>
               <span style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 1.5, color: C.sub, border: `1px solid ${C.line}`, borderRadius: 6, padding: "2px 7px" }}>PR</span>
             </div>
 
+            {simIntent && (
+              <p style={{ fontSize: 12, color: C.ink, lineHeight: 1.8, background: C.champagne, border: `1px solid ${C.goldLight}`, borderRadius: 12, padding: "10px 14px", margin: "0 0 14px" }}>
+                シミュレーションで選んだ <b>{simIntent.methodLabel}ホワイトニング</b>(「{simIntent.shade}」相当の白さイメージ)に対応した方式のお店を優先して表示しています。実際の効果や到達シェードは歯の状態により異なります。
+              </p>
+            )}
+
             <div className="hm-clinics">
-              {AFFILIATES.map((c) => (
-                <div key={c.name} style={{ background: C.card, borderRadius: 18, padding: 18, border: `1px solid ${C.line}` }}>
+              {(simIntent
+                ? [...AFFILIATES].sort((a, b) => (b.methods.includes(simIntent.method) ? 1 : 0) - (a.methods.includes(simIntent.method) ? 1 : 0))
+                : AFFILIATES
+              ).map((c) => {
+                const matched = simIntent ? c.methods.includes(simIntent.method) : false;
+                return (
+                <div key={c.name} style={{ background: C.card, borderRadius: 18, padding: 18, border: matched ? `2px solid ${C.gold}` : `1px solid ${C.line}` }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                     <div>
                       <div style={{ fontSize: 15, fontWeight: 700 }}>{c.name}</div>
@@ -557,8 +580,14 @@ export default function WhiteningSimulator() {
                     </a>
                     <img src={c.pixel} alt="" width="1" height="1" style={{ border: 0, position: "absolute", opacity: 0 }} />
                   </div>
+                  {simIntent && !matched && (
+                    <div style={{ fontSize: 10.5, color: C.sub, marginTop: 10, lineHeight: 1.6 }}>
+                      ※シミュレーションで選んだ方式({simIntent.methodLabel})とは異なる方式のお店です
+                    </div>
+                  )}
                 </div>
-              ))}
+                );
+              })}
             </div>
             <p style={{ fontSize: 10, color: C.sub, lineHeight: 1.6, marginTop: 16 }}>
               ※当セクションはアフィリエイト広告(A8.net)を利用しています。※料金・キャンペーン等の最新情報は各公式サイトにてご確認ください。※本アプリのシミュレーションは演出であり、実際の施術効果を保証するものではありません。
@@ -749,6 +778,35 @@ export default function WhiteningSimulator() {
                 </div>
                 <div style={{ fontSize: 10.5, color: C.sub, marginTop: 8, lineHeight: 1.6 }}>※{m.unit}</div>
 
+                {/* ---------- 開始シェード(今の歯の色) ---------- */}
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 11, color: C.sub, marginBottom: 6 }}>今の歯の色に近いものを選択(目安の精度が上がります)</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {[
+                      { idx: 1, label: "A3.5", desc: "やや濃いめ" },
+                      { idx: 2, label: "A3", desc: "平均的" },
+                      { idx: 3, label: "A2", desc: "明るめ" },
+                    ].map((o) => (
+                      <button
+                        key={o.idx}
+                        onClick={() => setStartShade(o.idx)}
+                        style={{
+                          flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                          borderRadius: 12, padding: "9px 4px",
+                          border: startShade === o.idx ? `2px solid ${C.gold}` : `1.5px solid ${C.line}`,
+                          background: startShade === o.idx ? C.champagne : C.card,
+                        }}
+                      >
+                        <span style={{ width: 16, height: 16, borderRadius: 4, background: SHADES[o.idx].hex, border: `1px solid ${C.line}`, flexShrink: 0 }} />
+                        <span style={{ textAlign: "left" }}>
+                          <span style={{ display: "block", fontWeight: 900, fontSize: 12, lineHeight: 1.2, color: startShade === o.idx ? C.goldDark : C.ink }}>{o.label}</span>
+                          <span style={{ display: "block", fontSize: 9, color: C.sub }}>{o.desc}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* ---------- シェードガイド ---------- */}
                 <div style={{ marginTop: 16 }}>
                   <div style={{ fontSize: 11, color: C.sub, marginBottom: 6 }}>シェードガイド(色見本)の目安</div>
@@ -767,13 +825,32 @@ export default function WhiteningSimulator() {
                   <div style={{ fontSize: 12, marginTop: 8, fontWeight: 700, color: C.goldDark }}>
                     {m.label}ホワイトニング {sessions}回で「{SHADES[shadeIdx].name}」相当の白さイメージ
                   </div>
+                  {atSelfCeiling && (
+                    <div style={{ marginTop: 10, background: C.champagne, border: `1px solid ${C.goldLight}`, borderRadius: 12, padding: "12px 14px" }}>
+                      <p style={{ fontSize: 11.5, color: C.ink, lineHeight: 1.8, margin: 0 }}>
+                        セルフホワイトニングは歯の表面の着色(ステイン)ケアが中心のため、目安は「本来の歯の色」までとしています。これ以上の白さをめざす場合は、歯科医院で受けられる<b>オフィス</b>や<b>ホーム</b>ホワイトニングが選択肢になります。
+                      </p>
+                      <button
+                        onClick={() => { setMethod("office"); track("sim_switch_office_from_self"); }}
+                        style={{ marginTop: 10, border: `1.5px solid ${C.gold}`, background: C.card, color: C.goldDark, fontWeight: 900, fontSize: 12, borderRadius: 999, padding: "9px 18px" }}
+                      >
+                        オフィスの目安に切り替えてみる →
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* ---------- CTA ---------- */}
-              <button onClick={() => setScreen("home")}
+              <button
+                onClick={() => {
+                  setSimIntent({ method: m.id, methodLabel: m.label, shade: SHADES[shadeIdx].name });
+                  setScreen("home");
+                  track("sim_to_clinics", { method: m.id, sessions, shade: SHADES[shadeIdx].name });
+                  requestAnimationFrame(() => document.getElementById("hm-clinics")?.scrollIntoView({ behavior: "smooth" }));
+                }}
                 style={{ width: "100%", marginTop: 20, background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, border: "none", color: "#fff", fontWeight: 900, fontSize: 15, borderRadius: 16, padding: "16px 0", boxShadow: "0 6px 18px rgba(192,145,60,0.35)" }}>
-                この白さにできるお店を探す →
+                この白さをめざせる方式のお店を探す →
               </button>
 
               <p style={{ fontSize: 10, color: C.sub, lineHeight: 1.6, marginTop: 14 }}>
