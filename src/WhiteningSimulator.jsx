@@ -40,9 +40,9 @@ const SHADES = [
 ];
 
 const METHODS = [
-  { id: "office", label: "オフィス", desc: "歯科医院で施術", perSession: 0.30 },
-  { id: "home", label: "ホーム", desc: "自宅でマウスピース", perSession: 0.17 },
-  { id: "self", label: "セルフ", desc: "サロンで自分で照射", perSession: 0.11 },
+  { id: "office", label: "オフィス", desc: "歯科医院で施術", perSession: 0.30, unit: "1回 = 歯科医院での施術1回" },
+  { id: "home", label: "ホーム", desc: "自宅でマウスピース", perSession: 0.17, unit: "1回 = マウスピースを約2週間連続使用した場合の目安" },
+  { id: "self", label: "セルフ", desc: "サロンで自分で照射", perSession: 0.11, unit: "1回 = サロンでの施術1回" },
 ];
 
 const CLINICS = [
@@ -76,7 +76,7 @@ const FAQS = [
   { q: "シミュレーション通りの白さになりますか?", a: "シミュレーションはあくまで画像加工によるイメージ演出です。実際の施術効果や到達シェードを保証するものではなく、歯の状態や施術内容によって結果は異なります。「なりたい白さのイメージづくり」の目安としてお使いください。" },
   { q: "きれいにシミュレーションするコツはありますか?", a: "明るい場所で撮った、歯がしっかり見える笑顔の写真がおすすめです。正面から撮影し、口元にピントが合っていると、歯色の検出精度が上がります。" },
   { q: "iPhoneで写真が読み込めません", a: "iPhoneの標準設定(HEIC形式)で撮影された写真は読み込めない場合があります。その写真のスクリーンショットを撮って選び直すか、「設定→カメラ→フォーマット→互換性優先」に変更して撮り直すと読み込めます。" },
-  { q: "シェードガイドとは何ですか?", a: "歯科医院で使われる歯の色見本のことです。本アプリではA4(やや濃いめ)〜BL(ブリーチシェード)の8段階で白さの目安を表示しています。日本人の平均はA3前後と言われています。" },
+  { q: "シェードガイドとは何ですか?", a: "歯科医院で使われる歯の色見本のことです。本アプリではA4(やや濃いめ)〜BL(最も明るいブリーチシェード)の8段階で表示しています。日本人の平均はA3前後、自然な白さの上限はB1程度と言われているため、シミュレーションの到達目安はB1までとしています。" },
   { q: "ホワイトニングは誰でも受けられますか?", a: "虫歯や知覚過敏がある方、妊娠中・授乳中の方などは受けられない場合があります。また、差し歯や詰め物などの人工歯は薬剤では白くなりません。ご自身が受けられるかどうかは、歯科医師にご相談ください。" },
 ];
 
@@ -167,9 +167,12 @@ export default function WhiteningSimulator() {
   const m = METHODS.find((x) => x.id === method);
   const intensity = Math.min(0.85, 1 - Math.pow(1 - m.perSession, sessions));
   const startShade = 2; // A3想定
-  const shadeIdx = Math.min(SHADES.length - 1, startShade + Math.round(intensity * 7));
+  // 到達目安の上限はB1(idx6)。BLはシェードガイドの表示のみで、シミュレーション上は到達しない
+  const shadeIdx = Math.min(6, startShade + Math.round(intensity * 7));
 
   /* --- 描画 --- */
+  const cacheRef = useRef({ key: "" }); // before/after のキャッシュ(スライダー操作の軽量化)
+
   const render = useCallback(() => {
     const canvas = canvasRef.current;
     const img = imgRef.current;
@@ -182,24 +185,10 @@ export default function WhiteningSimulator() {
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext("2d");
-    ctx.drawImage(img, 0, 0, w, h);
-    const before = ctx.getImageData(0, 0, w, h);
-    const after = ctx.createImageData(w, h);
-    applyWhitening(before, after, intensity, w, h, mouth);
-    // 左=Before / 右=After をスライダー位置で分割
-    ctx.putImageData(before, 0, 0);
-    const sx = Math.round(w * split);
-    if (sx < w) {
-      const tmp = document.createElement("canvas");
-      tmp.width = w; tmp.height = h;
-      tmp.getContext("2d").putImageData(after, 0, 0);
-      ctx.drawImage(tmp, sx, 0, w - sx, h, sx, 0, w - sx, h);
-    }
-    // 分割線
-    ctx.fillStyle = "rgba(255,255,255,0.9)";
-    ctx.fillRect(sx - 1, 0, 2, h);
-    // エリア調整モード時は楕円ガイドを表示
+
+    // エリア調整モード: 原画+楕円ガイドのみ描画(白色化計算をスキップしてドラッグを滑らかに)
     if (editMode === "area") {
+      ctx.drawImage(img, 0, 0, w, h);
       ctx.save();
       ctx.strokeStyle = "#C0913C";
       ctx.lineWidth = Math.max(2, w / 240);
@@ -208,11 +197,34 @@ export default function WhiteningSimulator() {
       ctx.ellipse(mouth.cx * w, mouth.cy * h, Math.max(8, mouth.r * w), Math.max(6, mouth.r * w * 0.55), 0, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
+      return;
     }
+
+    // 比較モード: before/after を一度だけ計算してキャッシュ。スライダー移動時は合成のみ
+    const key = `${w}x${h}|${intensity.toFixed(4)}|${mouth.cx.toFixed(3)},${mouth.cy.toFixed(3)},${mouth.r.toFixed(3)}|${imgSrc ? imgSrc.length : 0}`;
+    if (cacheRef.current.key !== key) {
+      ctx.drawImage(img, 0, 0, w, h);
+      const before = ctx.getImageData(0, 0, w, h);
+      const after = ctx.createImageData(w, h);
+      applyWhitening(before, after, intensity, w, h, mouth);
+      const bc = document.createElement("canvas"); bc.width = w; bc.height = h;
+      bc.getContext("2d").putImageData(before, 0, 0);
+      const ac = document.createElement("canvas"); ac.width = w; ac.height = h;
+      ac.getContext("2d").putImageData(after, 0, 0);
+      cacheRef.current = { key, bc, ac };
+    }
+    const { bc, ac } = cacheRef.current;
+    // 左=Before / 右=After をスライダー位置で分割
+    ctx.drawImage(bc, 0, 0);
+    const sx = Math.round(w * split);
+    if (sx < w) ctx.drawImage(ac, sx, 0, w - sx, h, sx, 0, w - sx, h);
+    // 分割線
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.fillRect(sx - 1, 0, 2, h);
     } catch (err) {
       setImgStatus("画像の処理中にエラーが発生しました。別の写真でお試しください。");
     }
-  }, [intensity, split, mouth, editMode]);
+  }, [intensity, split, mouth, editMode, imgSrc]);
 
   useEffect(() => { render(); }, [render, imgSrc]);
 
@@ -310,12 +322,36 @@ export default function WhiteningSimulator() {
       y: Math.max(0.02, Math.min(0.98, py / rect.height)),
     };
   };
+  const dragOffRef = useRef({ dx: 0, dy: 0 }); // 掴んだ位置と枠中心のズレを保持(相対ドラッグ)
   const applyPointer = (e) => {
     const p = xyFromEvent(e);
-    if (editMode === "area") setMouth((prev) => ({ ...prev, cx: p.x, cy: p.y }));
-    else setSplit(p.x);
+    if (editMode === "area") {
+      setMouth((prev) => ({
+        ...prev,
+        cx: Math.max(0.02, Math.min(0.98, p.x + dragOffRef.current.dx)),
+        cy: Math.max(0.02, Math.min(0.98, p.y + dragOffRef.current.dy)),
+      }));
+    } else setSplit(p.x);
   };
-  const onDown = (e) => { dragRef.current = true; applyPointer(e); };
+  const onDown = (e) => {
+    dragRef.current = true;
+    if (editMode === "area") {
+      const canvas = canvasRef.current;
+      const p = xyFromEvent(e);
+      let inside = false;
+      if (canvas && canvas.width && canvas.height) {
+        // 枠(楕円)の内側を掴んだ場合は、掴んだ位置からの相対移動にする(中心がタップ位置へ飛ばないように)
+        const aspect = canvas.width / canvas.height;
+        const rx = Math.max(0.02, mouth.r);
+        const ry = Math.max(0.02, mouth.r * 0.55 * aspect);
+        const dx = (p.x - mouth.cx) / rx;
+        const dy = (p.y - mouth.cy) / ry;
+        inside = dx * dx + dy * dy <= 1.4; // 枠の少し外側までつかめる
+      }
+      dragOffRef.current = inside ? { dx: mouth.cx - p.x, dy: mouth.cy - p.y } : { dx: 0, dy: 0 };
+    }
+    applyPointer(e);
+  };
   const onMove = (e) => { if (dragRef.current) applyPointer(e); };
   const onUp = () => { dragRef.current = false; };
 
@@ -682,6 +718,7 @@ export default function WhiteningSimulator() {
                     <button onClick={() => setSessions(Math.min(6, sessions + 1))} style={{ width: 36, height: 36, borderRadius: 999, border: "none", background: C.gold, color: "#fff", fontSize: 18, fontWeight: 700 }}>＋</button>
                   </div>
                 </div>
+                <div style={{ fontSize: 10.5, color: C.sub, marginTop: 8, lineHeight: 1.6 }}>※{m.unit}</div>
 
                 {/* ---------- シェードガイド ---------- */}
                 <div style={{ marginTop: 16 }}>
