@@ -35,6 +35,74 @@ function track(name, params) {
   }
 }
 
+/* ------------------------------------------------------------------
+   MediaPipe 口元自動検出(自動+手動微調整のハイブリッド)
+   - WASMは public/wasm/ に同梱(外部CDN不要)
+   - モデルは public/models/face_landmarker.task があればローカル優先、
+     なければGoogle CDNから取得
+   - 検出はすべてブラウザ内で実行。画像はサーバーに送信されない
+   - 失敗時は従来の手動フローにフォールバック
+   ------------------------------------------------------------------ */
+const MP_WASM_PATH = "/wasm";
+const MP_MODEL_LOCAL = "/models/face_landmarker.task";
+const MP_MODEL_CDN = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
+
+let visionPromise = null;
+function getVision() {
+  if (!visionPromise) {
+    visionPromise = (async () => {
+      const vision = await import("@mediapipe/tasks-vision");
+      const fileset = await vision.FilesetResolver.forVisionTasks(MP_WASM_PATH);
+      let modelAssetPath = MP_MODEL_CDN;
+      try {
+        const r = await fetch(MP_MODEL_LOCAL, { method: "HEAD" });
+        const len = Number(r.headers.get("content-length") || 0);
+        if (r.ok && len > 1000000) modelAssetPath = MP_MODEL_LOCAL; // SPAのHTMLが返るケースを除外
+      } catch (_) { /* ローカルなし → CDN */ }
+      const opts = (delegate) => ({
+        baseOptions: { modelAssetPath, delegate },
+        runningMode: "IMAGE",
+        numFaces: 1,
+      });
+      let landmarker;
+      try {
+        landmarker = await vision.FaceLandmarker.createFromOptions(fileset, opts("GPU"));
+      } catch (_) {
+        landmarker = await vision.FaceLandmarker.createFromOptions(fileset, opts("CPU"));
+      }
+      const LIP_IDX = [...new Set(vision.FaceLandmarker.FACE_LANDMARKS_LIPS.flatMap((c) => [c.start, c.end]))];
+      return { landmarker, LIP_IDX };
+    })().catch((e) => {
+      visionPromise = null; // 次回リトライできるように
+      throw e;
+    });
+  }
+  return visionPromise;
+}
+
+/* 唇ランドマークのバウンディングボックス → 口元楕円 {cx, cy, r}(相対座標) */
+async function detectMouthRegion(imgEl) {
+  const { landmarker, LIP_IDX } = await getVision();
+  const res = landmarker.detect(imgEl);
+  const pts = res && res.faceLandmarks && res.faceLandmarks[0];
+  if (!pts) return null;
+  let minX = 1, maxX = 0, minY = 1, maxY = 0;
+  for (const i of LIP_IDX) {
+    const p = pts[i];
+    if (!p) continue;
+    if (p.x < minX) minX = p.x;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.y > maxY) maxY = p.y;
+  }
+  if (maxX <= minX || maxY <= minY) return null;
+  return {
+    cx: Math.max(0.02, Math.min(0.98, (minX + maxX) / 2)),
+    cy: Math.max(0.02, Math.min(0.98, (minY + maxY) / 2)),
+    r: Math.max(0.07, Math.min(0.32, ((maxX - minX) / 2) * 1.35)), // 唇の少し外側まで
+  };
+}
+
 const SHADES = [
   { name: "A4", hex: "#C9A57B" },
   { name: "A3.5", hex: "#D3B189" },
@@ -187,12 +255,16 @@ export default function WhiteningSimulator() {
   const [editMode, setEditMode] = useState("area"); // area(エリア調整) | compare(比較)
   const [startShade, setStartShade] = useState(2); // 開始シェード(今の歯の色): 1=A3.5 / 2=A3(既定) / 3=A2
   const [simIntent, setSimIntent] = useState(null); // シミュ→店舗リストへの引き継ぎ { method, methodLabel, shade }
+  const [detecting, setDetecting] = useState(false); // 口元自動検出中
+  const [detectMsg, setDetectMsg] = useState(""); // 自動検出の結果メッセージ
 
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const imgRef = useRef(null);
   const dragRef = useRef(false);
+  const userMovedRef = useRef(false); // 検出完了前にユーザーが枠を動かしたか
+  const detectSeqRef = useRef(0); // 画像切替時に古い検出結果を破棄するための連番
 
   const m = METHODS.find((x) => x.id === method);
   // 方式別の到達上限(maxIdx)で、シェードゲージと画像加工のintensityを同期してキャップする。
@@ -261,6 +333,34 @@ export default function WhiteningSimulator() {
 
   useEffect(() => { render(); }, [render, imgSrc]);
 
+  /* --- 口元自動検出(結果はユーザーが枠を動かしていない場合のみ反映) --- */
+  const autoDetectMouth = (imgEl) => {
+    const seq = ++detectSeqRef.current;
+    userMovedRef.current = false;
+    setDetecting(true);
+    setDetectMsg("");
+    detectMouthRegion(imgEl)
+      .then((region) => {
+        if (detectSeqRef.current !== seq) return; // 別の画像に切り替わった
+        if (region && !userMovedRef.current) {
+          setMouth(region);
+          setDetectMsg("口元を自動検出しました。枠のドラッグやスライダーで微調整できます");
+          track("sim_autodetect", { result: "ok" });
+        } else if (!region) {
+          setDetectMsg("自動検出できませんでした。金色の枠を口元に合わせてください");
+          track("sim_autodetect", { result: "not_found" });
+        }
+      })
+      .catch(() => {
+        if (detectSeqRef.current !== seq) return;
+        setDetectMsg("自動検出を利用できない環境のため、枠を手動で合わせてください");
+        track("sim_autodetect", { result: "error" });
+      })
+      .finally(() => {
+        if (detectSeqRef.current === seq) setDetecting(false);
+      });
+  };
+
   /* --- 画像読み込み --- */
   const loadFile = (f) => {
     if (!f) return;
@@ -277,6 +377,7 @@ export default function WhiteningSimulator() {
         setMouth({ cx: 0.5, cy: 0.62, r: 0.16 });
         setImgSrc(reader.result);
         track("sim_photo_loaded", { source: "upload" });
+        autoDetectMouth(img);
       };
       img.onerror = () =>
         setImgStatus("この画像形式を表示できませんでした(iPhoneのHEIC形式の可能性)。スクリーンショットを撮ってその画像を選ぶか、設定→カメラ→フォーマットを「互換性優先」にして撮影し直すと読み込めます。");
@@ -339,6 +440,7 @@ export default function WhiteningSimulator() {
       setImgSrc(url);
       stopCamera();
       track("sim_photo_loaded", { source: "camera" });
+      autoDetectMouth(img);
     };
     img.src = url;
   };
@@ -371,6 +473,7 @@ export default function WhiteningSimulator() {
   const onDown = (e) => {
     dragRef.current = true;
     if (editMode === "area") {
+      userMovedRef.current = true; // 手動調整が始まったら自動検出結果で上書きしない
       const canvas = canvasRef.current;
       const p = xyFromEvent(e);
       let inside = false;
@@ -390,7 +493,12 @@ export default function WhiteningSimulator() {
   const onMove = (e) => { if (dragRef.current) applyPointer(e); };
   const onUp = () => { dragRef.current = false; };
 
-  const goSim = () => { setScreen("sim"); window.scrollTo(0, 0); track("sim_open"); };
+  const goSim = () => {
+    setScreen("sim");
+    window.scrollTo(0, 0);
+    track("sim_open");
+    getVision().catch(() => {}); // 写真選択中にモデルを先読み(ウォームアップ)
+  };
 
   /* ================= UI ================= */
   const font = { fontFamily: "'Zen Kaku Gothic New','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif" };
@@ -710,7 +818,9 @@ export default function WhiteningSimulator() {
                 )}
                 {editMode === "area" && (
                   <div style={{ position: "absolute", bottom: 10, left: 10, right: 10, fontSize: 11, fontWeight: 700, background: "rgba(192,145,60,0.92)", color: "#fff", borderRadius: 10, padding: "8px 12px", textAlign: "center" }}>
-                    ① 金色の枠をタップ/ドラッグで口元に合わせてください
+                    {detecting
+                      ? "口元を自動検出しています…(枠はいつでも手動で動かせます)"
+                      : (detectMsg || "① 金色の枠をタップ/ドラッグで口元に合わせてください")}
                   </div>
                 )}
               </div>
