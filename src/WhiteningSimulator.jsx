@@ -554,21 +554,29 @@ export default function WhiteningSimulator() {
       {/* ---------- ヘッダー(sticky) ---------- */}
       <header style={{ position: "sticky", top: 0, zIndex: 40, background: "rgba(250,247,241,0.92)", backdropFilter: "blur(8px)", borderBottom: `1px solid ${C.line}` }}>
         <div className="hm-container" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <a
+            href="/"
+            onClick={(e) => { e.preventDefault(); stopCamera(); setScreen("home"); window.scrollTo(0, 0); }}
+            aria-label="トップページへ戻る"
+            style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, textDecoration: "none", cursor: "pointer" }}
+          >
             {LOGO_SRC ? (
-              <img src={LOGO_SRC} alt="ハミュレーション — 歯の未来をシミュレーション" style={{ height: 30, width: "auto", maxWidth: "62vw", display: "block", objectFit: "contain" }} />
+              <img src={LOGO_SRC} alt="ハミュレーション — 歯の未来をシミュレーション" style={{ height: 30, width: "auto", maxWidth: "55vw", display: "block", objectFit: "contain" }} />
             ) : (
               <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 20, letterSpacing: 1, color: C.gold }}>ハミュレーション</div>
             )}
+          </a>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+            <a href="https://column.hamulation.com/" style={{ fontSize: 11, fontWeight: 700, color: C.goldDark, textDecoration: "none", background: C.card, border: `1px solid ${C.goldLight}`, borderRadius: 999, padding: "7px 14px", whiteSpace: "nowrap" }}>📖 コラム</a>
+            {screen === "home" && (
+              <button
+                onClick={goSim}
+                style={{ fontSize: 11, background: C.champagne, color: C.goldDark, borderRadius: 999, padding: "7px 14px", fontWeight: 700, border: `1px solid ${C.goldLight}` }}
+              >
+                ✨ 無料で試す
+              </button>
+            )}
           </div>
-          {screen === "home" && (
-            <button
-              onClick={goSim}
-              style={{ fontSize: 11, background: C.champagne, color: C.goldDark, borderRadius: 999, padding: "7px 14px", fontWeight: 700, border: `1px solid ${C.goldLight}` }}
-            >
-              ✨ 無料で試す
-            </button>
-          )}
         </div>
       </header>
 
@@ -1047,6 +1055,7 @@ export default function WhiteningSimulator() {
         <ShadeStrip height={5} radius={0} />
         <div style={{ padding: "26px 20px 40px", textAlign: "center" }}>
           <div style={{ fontSize: 11, color: C.sub, display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap" }}>
+            <a href="https://column.hamulation.com/" style={{ color: C.goldDark, fontWeight: 700 }}>コラム</a>
             <a href="/privacy.html" style={{ color: C.sub }}>プライバシーポリシー</a>
             <a href="/terms.html" style={{ color: C.sub }}>免責事項</a>
             <a href="/about.html" style={{ color: C.sub }}>運営者情報</a>
