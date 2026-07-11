@@ -136,6 +136,7 @@ const AFFILIATES = [
     note: "歯科医師・歯科衛生士による施術 / 初回全額返金保証付",
     href: "https://px.a8.net/svt/ejp?a8mat=4B7WD2+DEUMP6+4466+5ZEMQ",
     pixel: "https://www19.a8.net/0.gif?a8mat=4B7WD2+DEUMP6+4466+5ZEMQ",
+    page: "/clinic/star-whitening.html",
   },
   {
     name: "ホワイトマイスター",
@@ -146,6 +147,7 @@ const AFFILIATES = [
     note: "表参道のホワイトニング専門歯科",
     href: "https://px.a8.net/svt/ejp?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE",
     pixel: "https://www19.a8.net/0.gif?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE",
+    page: "/clinic/white-meister.html",
   },
 ];
 
@@ -493,6 +495,21 @@ export default function WhiteningSimulator() {
   const onMove = (e) => { if (dragRef.current) applyPointer(e); };
   const onUp = () => { dragRef.current = false; };
 
+  /* 仕上がり目標(シェードidx)から方式・回数の目安を自動セット */
+  const applyGoal = (goalIdx, goalName) => {
+    // 現在の方式で到達できない場合はオフィスへ(例: セルフでB1)
+    const target = (m.maxIdx ?? 6) >= goalIdx ? m : METHODS[0];
+    let need = 6;
+    for (let n = 1; n <= 6; n++) {
+      const raw = Math.min(0.85, 1 - Math.pow(1 - target.perSession, n));
+      const cap = Math.min(raw, ((target.maxIdx ?? 6) - startShade) / 7);
+      if (Math.min(target.maxIdx ?? 6, startShade + Math.round(cap * 7)) >= goalIdx) { need = n; break; }
+    }
+    setMethod(target.id);
+    setSessions(need);
+    track("sim_goal", { goal: goalName, method: target.id, sessions: need });
+  };
+
   const goSim = () => {
     setScreen("sim");
     window.scrollTo(0, 0);
@@ -688,6 +705,11 @@ export default function WhiteningSimulator() {
                     </a>
                     <img src={c.pixel} alt="" width="1" height="1" style={{ border: 0, position: "absolute", opacity: 0 }} />
                   </div>
+                  {c.page && (
+                    <a href={c.page} onClick={() => track("clinic_page_view", { clinic: c.name })} style={{ display: "inline-block", marginTop: 10, fontSize: 11.5, fontWeight: 700, color: C.goldDark }}>
+                      特徴・条件の詳細を見る →
+                    </a>
+                  )}
                   {simIntent && !matched && (
                     <div style={{ fontSize: 10.5, color: C.sub, marginTop: 10, lineHeight: 1.6 }}>
                       ※シミュレーションで選んだ方式({simIntent.methodLabel})とは異なる方式のお店です
@@ -696,6 +718,24 @@ export default function WhiteningSimulator() {
                 </div>
                 );
               })}
+            </div>
+
+            {/* ---------- 医院選びの3つの基準 ---------- */}
+            <div style={{ marginTop: 18, background: C.champagne, border: `1px solid ${C.line}`, borderRadius: 16, padding: "16px 18px" }}>
+              <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 600, marginBottom: 10 }}>クリニック選びで見るべき3つのポイント</div>
+              {[
+                { t: "総額で比較する", d: "1回あたりの料金ではなく「目標の白さまでに必要な回数 × 単価 + 初診料など」の総額で比べるのがおすすめです。" },
+                { t: "通いやすさ", d: "ホワイトニングは複数回の通院が前提になることが多いもの。駅からの距離・診療時間・予約の取りやすさを確認しましょう。" },
+                { t: "施術者と保証", d: "歯科医師・歯科衛生士が施術するか、返金保証やアフターフォローがあるかは安心材料になります。" },
+              ].map((p, i) => (
+                <div key={p.t} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: i === 0 ? 0 : 10 }}>
+                  <div style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 999, background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", fontSize: 11, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 1 }}>{i + 1}</div>
+                  <div>
+                    <span style={{ fontSize: 12.5, fontWeight: 900 }}>{p.t}</span>
+                    <span style={{ fontSize: 11.5, color: C.sub, lineHeight: 1.7, display: "block" }}>{p.d}</span>
+                  </div>
+                </div>
+              ))}
             </div>
             <p style={{ fontSize: 10, color: C.sub, lineHeight: 1.6, marginTop: 16 }}>
               ※当セクションはアフィリエイト広告(A8.net)を利用しています。※料金・キャンペーン等の最新情報は各公式サイトにてご確認ください。※本アプリのシミュレーションは演出であり、実際の施術効果を保証するものではありません。
@@ -784,6 +824,9 @@ export default function WhiteningSimulator() {
               <button onClick={startCamera} style={{ width: "100%", background: C.card, color: C.goldDark, fontWeight: 900, borderRadius: 14, padding: "13px 0", fontSize: 14, border: `2px solid ${C.gold}` }}>
                 🤳 インカメラで撮影
               </button>
+              <div style={{ marginTop: 14, background: C.champagne, borderRadius: 10, padding: "10px 12px", fontSize: 11, color: C.sub, lineHeight: 1.7, textAlign: "left" }}>
+                🔒 写真はお使いの端末内でのみ処理されます。サーバーへの送信・保存は行わず、診断などに使われることもありません。
+              </div>
               {camError && <div style={{ fontSize: 12, color: "#B4452F", marginTop: 12 }}>{camError}</div>}
               {imgStatus && <div style={{ fontSize: 12, color: imgStatus === "読み込み中…" ? C.sub : "#B4452F", marginTop: 12, lineHeight: 1.6, textAlign: "left" }}>{imgStatus}</div>}
             </div>
@@ -855,8 +898,36 @@ export default function WhiteningSimulator() {
               )}
               {imgStatus && <div style={{ fontSize: 12, color: "#B4452F", marginTop: 8, lineHeight: 1.6 }}>{imgStatus}</div>}
 
-              {/* ---------- 方式 ---------- */}
+              {/* ---------- 仕上がり別プリセット ---------- */}
               <div style={{ marginTop: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 900, marginBottom: 8 }}>仕上がりの目安から選ぶ</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[
+                    { idx: 4, key: "natural", label: "自然な白さ", desc: "A1相当・本来の歯の色" },
+                    { idx: 6, key: "bright", label: "しっかり白さ", desc: "B1相当・明るい印象" },
+                  ].map((g) => (
+                    <button
+                      key={g.key}
+                      onClick={() => applyGoal(g.idx, g.key)}
+                      style={{
+                        flex: 1, display: "flex", alignItems: "center", gap: 8, borderRadius: 14, padding: "10px 12px",
+                        border: shadeIdx === g.idx ? `2px solid ${C.gold}` : `1.5px solid ${C.line}`,
+                        background: shadeIdx === g.idx ? C.champagne : C.card, textAlign: "left",
+                      }}
+                    >
+                      <span style={{ width: 22, height: 22, borderRadius: 6, background: SHADES[g.idx].hex, border: `1px solid ${C.line}`, flexShrink: 0 }} />
+                      <span>
+                        <span style={{ display: "block", fontWeight: 900, fontSize: 12.5 }}>{g.label}</span>
+                        <span style={{ display: "block", fontSize: 9.5, color: C.sub }}>{g.desc}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <div style={{ fontSize: 10, color: C.sub, marginTop: 6 }}>※選ぶと、その白さをめざせる方式・回数の目安に自動セットされます</div>
+              </div>
+
+              {/* ---------- 方式 ---------- */}
+              <div style={{ marginTop: 16 }}>
                 <div style={{ fontSize: 13, fontWeight: 900, marginBottom: 8 }}>ホワイトニングの方式</div>
                 <div style={{ display: "flex", gap: 8 }}>
                   {METHODS.map((mm) => (
@@ -964,7 +1035,7 @@ export default function WhiteningSimulator() {
               </button>
 
               <p style={{ fontSize: 10, color: C.sub, lineHeight: 1.6, marginTop: 14 }}>
-                ※本シミュレーションは画像演出によるイメージであり、実際の施術効果・到達シェードを保証するものではありません。効果には個人差があります。※アップロードした画像は端末内でのみ処理され、サーバーには送信されません。
+                ※本シミュレーションは画像演出によるイメージ(目安)であり、実際の施術効果・到達シェードを保証するものではありません。効果には個人差があります。実際にどこまで白くできるかは、歯科医院のカウンセリングでご確認ください。※アップロードした画像は端末内でのみ処理され、サーバーへの送信・保存は行いません。
               </p>
             </>
           )}
