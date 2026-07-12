@@ -276,6 +276,7 @@ export default function WhiteningSimulator() {
   const [detecting, setDetecting] = useState(false); // 口元自動検出中
   const [detectMsg, setDetectMsg] = useState(""); // 自動検出の結果メッセージ
   const [offerCardVisible, setOfferCardVisible] = useState(true); // 結果オファーカードが表示域にあるか(固定CTA制御)
+  const [timing, setTiming] = useState(null); // Phase2-1: いつまでに白くしたいか(2w | 1-3m | undecided)
 
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
@@ -321,6 +322,22 @@ export default function WhiteningSimulator() {
     source_page: "simulator",
   });
   const trackOfferClick = (offer, position) => track("offer_click", offerParams(offer, position));
+
+  /* ---------- Phase2-1: 希望時期の1問マッチング ----------
+     時期に応じて推奨方式・文言を出し分ける。2週間以内は「少ない回数で変化を感じやすい」
+     歯科医院のオフィスへ寄せる。1〜3ヶ月はホームも案内(※ホーム案件は未提携のため
+     空振りリンクは作らず、当面はオフィス案件を提示しつつ文言で補足)。 */
+  const selectTiming = (t) => {
+    setTiming(t);
+    const nextMethod = t === "2w" && method !== "office" ? "office" : method;
+    if (nextMethod !== method) setMethod(nextMethod);
+    track("whiteness_timing_selected", { timing: t, method: nextMethod, variant: OFFER_VARIANT, source_page: "simulator" });
+  };
+  const timingNote =
+    timing === "2w" ? "お急ぎなら、少ない回数で変化を感じやすい歯科医院のオフィスホワイトニングがおすすめです。"
+    : timing === "1-3m" ? "じっくり派なら、自宅で続けるホームホワイトニングも選択肢です(対応医院は順次追加予定)。まずは下記で始めやすい医院をチェック。"
+    : timing === "undecided" ? "まずは気軽に、料金や予約枠だけでも見てみるのがおすすめです。"
+    : null;
 
   // 比較画面に最初に到達したとき、ユニークな結果表示を1回だけ計測(KPIの分母)
   useEffect(() => {
@@ -979,6 +996,33 @@ export default function WhiteningSimulator() {
               )}
               {imgStatus && <div style={{ fontSize: 12, color: "#B4452F", marginTop: 8, lineHeight: 1.6 }}>{imgStatus}</div>}
 
+              {/* ---------- Phase2-1: 希望時期の1問マッチング ---------- */}
+              {editMode === "compare" && (
+                <div style={{ marginTop: 18 }}>
+                  <div style={{ fontSize: 13, fontWeight: 900, marginBottom: 8 }}>いつ頃までに白くしたいですか?</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {[
+                      { key: "2w", label: "2週間以内", desc: "イベントが近い" },
+                      { key: "1-3m", label: "1〜3ヶ月", desc: "じっくり派" },
+                      { key: "undecided", label: "まだ未定", desc: "様子見" },
+                    ].map((t) => (
+                      <button
+                        key={t.key}
+                        onClick={() => selectTiming(t.key)}
+                        style={{
+                          flex: 1, borderRadius: 12, padding: "9px 4px",
+                          border: timing === t.key ? `2px solid ${C.gold}` : `1.5px solid ${C.line}`,
+                          background: timing === t.key ? C.champagne : C.card, textAlign: "center",
+                        }}
+                      >
+                        <span style={{ display: "block", fontWeight: 900, fontSize: 12.5, color: timing === t.key ? C.goldDark : C.ink }}>{t.label}</span>
+                        <span style={{ display: "block", fontSize: 9.5, color: C.sub, marginTop: 2 }}>{t.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* ---------- Phase1: 結果直下オファーカード(この白さの受け方を案内) ---------- */}
               {editMode === "compare" && (
                 <div ref={offerCardRef} style={{ marginTop: 18 }}>
@@ -991,6 +1035,11 @@ export default function WhiteningSimulator() {
                   {!recMatched && (
                     <p style={{ fontSize: 11.5, color: C.ink, lineHeight: 1.8, margin: "0 0 10px" }}>
                       セルフホワイトニングは歯の表面の着色ケアが中心です。歯そのものの色をより明るくしたい場合は、歯科医院のホワイトニングも選択肢になります。
+                    </p>
+                  )}
+                  {timingNote && (
+                    <p style={{ fontSize: 11.5, color: C.ink, lineHeight: 1.8, margin: "0 0 10px", background: C.champagne, border: `1px solid ${C.goldLight}`, borderRadius: 10, padding: "9px 12px" }}>
+                      {timingNote}
                     </p>
                   )}
                   <div style={{ background: C.card, borderRadius: 18, padding: 18, border: `2px solid ${C.gold}`, boxShadow: "0 6px 18px rgba(192,145,60,0.15)" }}>
