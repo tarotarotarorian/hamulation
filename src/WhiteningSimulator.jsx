@@ -125,26 +125,42 @@ const METHODS = [
   { id: "self", label: "セルフ", desc: "サロンで自分で照射", perSession: 0.11, maxIdx: 4, unit: "1回 = サロンでの施術1回" },
 ];
 
-/* 提携プログラム(A8.net)。href=アフィリエイトリンク / pixel=インプレッション計測用1x1画像 */
+/* 提携プログラム(A8.net)。href=アフィリエイトリンク / pixel=インプレッション計測用1x1画像
+   推奨順位の考え方: ①エリア適合 ②方式一致 ③ユーザー希望 ④料金・通いやすさ ⑤EPC等の商業優先度(タイブレーク)
+   priority は⑤のタイブレーク用。verifiedAt は情報確認日(30〜45日超えたら再確認すること) */
 const AFFILIATES = [
   {
+    offerId: "star-whitening",
     name: "スターホワイトニング",
     area: "東京(新宿・銀座・池袋・渋谷ほか)・横浜・大阪など全国",
+    areaGroup: "national",
     tag: "オフィス",
     methods: ["office"],
     price: "1回 ¥2,950(税込)",
     note: "歯科医師・歯科衛生士による施術 / 初回全額返金保証付",
+    reason: "費用を抑えて医療ホワイトニングを始めたい方に",
+    cta: "1回¥2,950〜の料金と予約を見る →",
+    stickyCta: "1回¥2,950〜の料金と予約を見る",
+    priority: 1,
+    verifiedAt: "2026年7月",
     href: "https://px.a8.net/svt/ejp?a8mat=4B7WD2+DEUMP6+4466+5ZEMQ",
     pixel: "https://www19.a8.net/0.gif?a8mat=4B7WD2+DEUMP6+4466+5ZEMQ",
     page: "/clinic/star-whitening.html",
   },
   {
+    offerId: "white-meister",
     name: "ホワイトマイスター",
-    area: "東京・表参道",
+    area: "東京・銀座",
+    areaGroup: "ginza",
     tag: "オフィス",
     methods: ["office"],
     price: "料金は公式サイトにて",
-    note: "表参道のホワイトニング専門歯科",
+    note: "銀座のホワイトニング専門歯科",
+    reason: "銀座で、通院回数を抑えてしっかり白さを目指したい方に",
+    cta: "銀座の初回メニューを確認する →",
+    stickyCta: "銀座の初回メニューを確認する",
+    priority: 2,
+    verifiedAt: "2026年7月",
     href: "https://px.a8.net/svt/ejp?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE",
     pixel: "https://www19.a8.net/0.gif?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE",
     page: "/clinic/white-meister.html",
@@ -259,6 +275,7 @@ export default function WhiteningSimulator() {
   const [simIntent, setSimIntent] = useState(null); // シミュ→店舗リストへの引き継ぎ { method, methodLabel, shade }
   const [detecting, setDetecting] = useState(false); // 口元自動検出中
   const [detectMsg, setDetectMsg] = useState(""); // 自動検出の結果メッセージ
+  const [offerCardVisible, setOfferCardVisible] = useState(true); // 結果オファーカードが表示域にあるか(固定CTA制御)
 
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
@@ -267,6 +284,9 @@ export default function WhiteningSimulator() {
   const dragRef = useRef(false);
   const userMovedRef = useRef(false); // 検出完了前にユーザーが枠を動かしたか
   const detectSeqRef = useRef(0); // 画像切替時に古い検出結果を破棄するための連番
+  const resultViewedRef = useRef(false); // sim_result_view を1セッション1回に
+  const impressedOfferRef = useRef(null); // offer_impression をオファーごと1回に
+  const offerCardRef = useRef(null); // 結果オファーカードの可視監視用
 
   const m = METHODS.find((x) => x.id === method);
   // 方式別の到達上限(maxIdx)で、シェードゲージと画像加工のintensityを同期してキャップする。
@@ -276,6 +296,59 @@ export default function WhiteningSimulator() {
   const intensity = Math.min(rawIntensity, (maxIdx - startShade) / 7); // 画像とゲージを同期
   const shadeIdx = Math.min(maxIdx, startShade + Math.round(intensity * 7));
   const atSelfCeiling = m.id === "self" && rawIntensity > intensity + 0.001; // セルフ上限到達フラグ
+
+  /* ---------- Phase1: 結果画面オファー(推奨1件の選定と計測) ----------
+     推奨順位: ①方式一致 → ②priority(EPC等のタイブレーク)。
+     エリア適合・希望の出し分けは案件が増えてから前段に追加する(Phase2)。 */
+  const OFFER_VARIANT = "v11a";
+  const recommendedOffer = [...AFFILIATES].sort((a, b) => {
+    const am = a.methods.includes(method) ? 0 : 1;
+    const bm = b.methods.includes(method) ? 0 : 1;
+    if (am !== bm) return am - bm;
+    return (a.priority ?? 99) - (b.priority ?? 99);
+  })[0];
+  const recMatched = recommendedOffer.methods.includes(method); // 選択方式と一致するか
+  const offerParams = (offer, position) => ({
+    offer_id: offer.offerId,
+    position, // result_primary | result_sticky | result_alternative
+    method,
+    treatment_count: sessions, // GA4のsessionsと衝突しない名称
+    shade_before: SHADES[startShade].name,
+    shade_after: SHADES[shadeIdx].name,
+    recommendation_reason: offer.reason,
+    area_group: offer.areaGroup,
+    variant: OFFER_VARIANT,
+    source_page: "simulator",
+  });
+  const trackOfferClick = (offer, position) => track("offer_click", offerParams(offer, position));
+
+  // 比較画面に最初に到達したとき、ユニークな結果表示を1回だけ計測(KPIの分母)
+  useEffect(() => {
+    if (screen === "sim" && editMode === "compare" && imgSrc && !resultViewedRef.current) {
+      resultViewedRef.current = true;
+      track("sim_result_view", {
+        method, treatment_count: sessions,
+        shade_before: SHADES[startShade].name, shade_after: SHADES[shadeIdx].name,
+        variant: OFFER_VARIANT, source_page: "simulator",
+      });
+    }
+  }, [screen, editMode, imgSrc]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // オファーカードの可視監視: 初回可視でimpression(オファーごと1回)、画面外なら固定CTA表示
+  useEffect(() => {
+    const el = offerCardRef.current;
+    if (!el || editMode !== "compare") return;
+    const io = new IntersectionObserver((entries) => {
+      const e = entries[0];
+      setOfferCardVisible(e.isIntersecting);
+      if (e.isIntersecting && impressedOfferRef.current !== recommendedOffer.offerId) {
+        impressedOfferRef.current = recommendedOffer.offerId;
+        track("offer_impression", offerParams(recommendedOffer, "result_primary"));
+      }
+    }, { threshold: 0.35 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [editMode, imgSrc, recommendedOffer.offerId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* --- 描画 --- */
   const cacheRef = useRef({ key: "" }); // before/after のキャッシュ(スライダー操作の軽量化)
@@ -906,6 +979,48 @@ export default function WhiteningSimulator() {
               )}
               {imgStatus && <div style={{ fontSize: 12, color: "#B4452F", marginTop: 8, lineHeight: 1.6 }}>{imgStatus}</div>}
 
+              {/* ---------- Phase1: 結果直下オファーカード(この白さの受け方を案内) ---------- */}
+              {editMode === "compare" && (
+                <div ref={offerCardRef} style={{ marginTop: 18 }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
+                    <h3 style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 600, margin: 0 }}>
+                      {recMatched ? "この白さを目指すなら" : "もっと白さを目指したいなら"}
+                    </h3>
+                    <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.2, color: C.sub, border: `1px solid ${C.line}`, borderRadius: 6, padding: "1px 6px" }}>PR</span>
+                  </div>
+                  {!recMatched && (
+                    <p style={{ fontSize: 11.5, color: C.ink, lineHeight: 1.8, margin: "0 0 10px" }}>
+                      セルフホワイトニングは歯の表面の着色ケアが中心です。歯そのものの色をより明るくしたい場合は、歯科医院のホワイトニングも選択肢になります。
+                    </p>
+                  )}
+                  <div style={{ background: C.card, borderRadius: 18, padding: 18, border: `2px solid ${C.gold}`, boxShadow: "0 6px 18px rgba(192,145,60,0.15)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                      <div>
+                        <div style={{ fontSize: 15, fontWeight: 700 }}>{recommendedOffer.name}</div>
+                        <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>{recommendedOffer.area}</div>
+                        <div style={{ fontSize: 12, color: C.goldDark, fontWeight: 700, marginTop: 6, lineHeight: 1.6 }}>{recommendedOffer.reason}</div>
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.goldDark, background: C.champagne, border: `1px solid ${C.line}`, borderRadius: 8, padding: "4px 8px", height: "fit-content", whiteSpace: "nowrap" }}>{recommendedOffer.tag}</div>
+                    </div>
+                    <div style={{ fontSize: 13.5, fontWeight: 900, color: C.goldDark, marginTop: 12 }}>{recommendedOffer.price}</div>
+                    <a
+                      href={recommendedOffer.href}
+                      target="_blank"
+                      rel="nofollow sponsored noopener"
+                      onClick={() => trackOfferClick(recommendedOffer, "result_primary")}
+                      style={{ display: "block", textAlign: "center", marginTop: 12, background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", fontWeight: 900, fontSize: 14, borderRadius: 14, padding: "14px 0", textDecoration: "none", boxShadow: "0 4px 12px rgba(192,145,60,0.3)" }}
+                    >
+                      {recommendedOffer.cta}
+                    </a>
+                    <div style={{ fontSize: 10, color: C.sub, marginTop: 8, textAlign: "center" }}>公式サイトへ移動します・{recommendedOffer.verifiedAt}確認</div>
+                    <img src={recommendedOffer.pixel} alt="" width="1" height="1" style={{ border: 0, position: "absolute", opacity: 0 }} />
+                  </div>
+                  <div style={{ fontSize: 9.5, color: C.sub, marginTop: 8, lineHeight: 1.6 }}>
+                    ※当サイトはアフィリエイト広告を利用しています。最新の料金・対象院は公式サイトをご確認ください。
+                  </div>
+                </div>
+              )}
+
               {/* ---------- 仕上がり別プリセット ---------- */}
               <div style={{ marginTop: 20 }}>
                 <div style={{ fontSize: 13, fontWeight: 900, marginBottom: 8 }}>仕上がりの目安から選ぶ</div>
@@ -1030,7 +1145,7 @@ export default function WhiteningSimulator() {
                 </div>
               </div>
 
-              {/* ---------- CTA ---------- */}
+              {/* ---------- 代替導線: ほかの方式・お店を一覧で比較(オファーカードが本命) ---------- */}
               <button
                 onClick={() => {
                   setSimIntent({ method: m.id, methodLabel: m.label, shade: SHADES[shadeIdx].name });
@@ -1038,16 +1153,32 @@ export default function WhiteningSimulator() {
                   track("sim_to_clinics", { method: m.id, sessions, shade: SHADES[shadeIdx].name });
                   requestAnimationFrame(() => document.getElementById("hm-clinics")?.scrollIntoView({ behavior: "smooth" }));
                 }}
-                style={{ width: "100%", marginTop: 20, background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, border: "none", color: "#fff", fontWeight: 900, fontSize: 15, borderRadius: 16, padding: "16px 0", boxShadow: "0 6px 18px rgba(192,145,60,0.35)" }}>
-                この白さをめざせる方式のお店を探す →
+                style={{ width: "100%", marginTop: 18, background: C.card, border: `1.5px solid ${C.gold}`, color: C.goldDark, fontWeight: 900, fontSize: 14, borderRadius: 16, padding: "14px 0" }}>
+                ほかの方式・お店も一覧で比較する →
               </button>
 
               <p style={{ fontSize: 10, color: C.sub, lineHeight: 1.6, marginTop: 14 }}>
                 ※本シミュレーションは画像演出によるイメージ(目安)であり、実際の施術効果・到達シェードを保証するものではありません。効果には個人差があります。実際にどこまで白くできるかは、歯科医院のカウンセリングでご確認ください。※アップロードした画像は端末内でのみ処理され、サーバーへの送信・保存は行いません。
               </p>
+              {editMode === "compare" && <div aria-hidden style={{ height: 76 }} />}
             </>
           )}
         </main>
+      )}
+
+      {/* ---------- Phase1: スマホ下部固定CTA(オファーカードが画面外のときのみ) ---------- */}
+      {screen === "sim" && editMode === "compare" && imgSrc && !offerCardVisible && (
+        <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 50, background: "rgba(255,255,255,0.96)", backdropFilter: "blur(6px)", borderTop: `1px solid ${C.line}`, boxShadow: "0 -4px 16px rgba(0,0,0,0.08)", padding: "10px 16px calc(10px + env(safe-area-inset-bottom))" }}>
+          <a
+            href={recommendedOffer.href}
+            target="_blank"
+            rel="nofollow sponsored noopener"
+            onClick={() => trackOfferClick(recommendedOffer, "result_sticky")}
+            style={{ display: "block", maxWidth: 560, margin: "0 auto", textAlign: "center", background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", fontWeight: 900, fontSize: 14, borderRadius: 14, padding: "13px 0", textDecoration: "none", boxShadow: "0 4px 12px rgba(192,145,60,0.3)" }}
+          >
+            {recommendedOffer.stickyCta} →
+          </a>
+        </div>
       )}
 
       {/* ---------- フッター ---------- */}
