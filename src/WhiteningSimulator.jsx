@@ -63,6 +63,9 @@ function getVision() {
         baseOptions: { modelAssetPath, delegate },
         runningMode: "IMAGE",
         numFaces: 1,
+        // 顔が画面端で切れた写真でも拾えるよう、しきい値をデフォルト(0.5)より緩和
+        minFaceDetectionConfidence: 0.3,
+        minFacePresenceConfidence: 0.3,
       });
       let landmarker;
       try {
@@ -83,13 +86,37 @@ function getVision() {
 /* 唇ランドマークのバウンディングボックス → 口元楕円 {cx, cy, r}(相対座標) */
 async function detectMouthRegion(imgEl) {
   const { landmarker, LIP_IDX } = await getVision();
-  const res = landmarker.detect(imgEl);
-  const pts = res && res.faceLandmarks && res.faceLandmarks[0];
+  let pts = (landmarker.detect(imgEl).faceLandmarks || [])[0] || null;
+  let mapPoint = (p) => p;
+  let padded = false;
+
+  if (!pts) {
+    // 顔が画面端で切れている写真(ヒーロー画像的な構図の自撮り等)対策:
+    // 周囲に18%の余白を付けて再検出し、座標を元画像系に戻す
+    padded = true;
+    const w = imgEl.naturalWidth || imgEl.width;
+    const h = imgEl.naturalHeight || imgEl.height;
+    const pad = 0.18;
+    const nw = Math.round(w * (1 + pad * 2));
+    const nh = Math.round(h * (1 + pad * 2));
+    const c = document.createElement("canvas");
+    c.width = nw; c.height = nh;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#9e9e9e";
+    ctx.fillRect(0, 0, nw, nh);
+    ctx.drawImage(imgEl, Math.round(w * pad), Math.round(h * pad), w, h);
+    pts = (landmarker.detect(c).faceLandmarks || [])[0] || null;
+    if (pts) {
+      mapPoint = (p) => ({ x: (p.x * nw - w * pad) / w, y: (p.y * nh - h * pad) / h });
+    }
+  }
   if (!pts) return null;
+
   let minX = 1, maxX = 0, minY = 1, maxY = 0;
   for (const i of LIP_IDX) {
-    const p = pts[i];
-    if (!p) continue;
+    const raw = pts[i];
+    if (!raw) continue;
+    const p = mapPoint(raw);
     if (p.x < minX) minX = p.x;
     if (p.x > maxX) maxX = p.x;
     if (p.y < minY) minY = p.y;
@@ -100,6 +127,7 @@ async function detectMouthRegion(imgEl) {
     cx: Math.max(0.02, Math.min(0.98, (minX + maxX) / 2)),
     cy: Math.max(0.02, Math.min(0.98, (minY + maxY) / 2)),
     r: Math.max(0.07, Math.min(0.32, ((maxX - minX) / 2) * 1.35)), // 唇の少し外側まで
+    padded, // 余白リトライで検出したか(計測用)
   };
 }
 
@@ -339,6 +367,105 @@ export default function WhiteningSimulator() {
     : timing === "undecided" ? "まずは気軽に、料金や予約枠だけでも見てみるのがおすすめです。"
     : null;
 
+  /* ---------- Phase2-2: 結果画像の保存・シェア ----------
+     Before/Afterを1枚に合成し、下部バンドに「イメージであり効果を保証しない」注記 +
+     ロゴ(文字) + シェード目安 + URL を焼き込む(画像単体で拡散しても誤認しないための法務要件)。 */
+  const composeShareCanvas = () => {
+    const img = imgRef.current;
+    if (!img) return null;
+    const maxW = 720;
+    const scale = Math.min(1, maxW / img.width);
+    const w = Math.round(img.width * scale);
+    const h = Math.round(img.height * scale);
+    const band = Math.round(Math.max(104, w * 0.2)); // 下部注記バンド
+    const out = document.createElement("canvas");
+    out.width = w; out.height = h + band;
+    const ctx = out.getContext("2d");
+
+    // 左Before / 右After の合成
+    ctx.drawImage(img, 0, 0, w, h);
+    const base = document.createElement("canvas"); base.width = w; base.height = h;
+    const bctx = base.getContext("2d");
+    bctx.drawImage(img, 0, 0, w, h);
+    const before = bctx.getImageData(0, 0, w, h);
+    const after = bctx.createImageData(w, h);
+    applyWhitening(before, after, intensity, w, h, mouth);
+    const ac = document.createElement("canvas"); ac.width = w; ac.height = h;
+    ac.getContext("2d").putImageData(after, 0, 0);
+    const half = Math.round(w / 2);
+    ctx.drawImage(ac, half, 0, w - half, h, half, 0, w - half, h);
+    ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.fillRect(half - 1, 0, 2, h);
+
+    // BEFORE / AFTER ラベル
+    const pad = Math.round(w * 0.025);
+    const drawTag = (text, x, bg, fg) => {
+      ctx.font = `900 ${Math.round(w * 0.028)}px sans-serif`;
+      const tw = ctx.measureText(text).width;
+      const bw = tw + Math.round(w * 0.03);
+      const bh = Math.round(w * 0.05);
+      ctx.fillStyle = bg; ctx.fillRect(x, pad, bw, bh);
+      ctx.fillStyle = fg; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+      ctx.fillText(text, x + Math.round(w * 0.015), pad + bh / 2);
+      ctx.textBaseline = "top";
+      return bw;
+    };
+    drawTag("BEFORE", pad, "rgba(43,36,26,0.6)", "#fff");
+    const aw = ctx.measureText("AFTER").width + Math.round(w * 0.03);
+    drawTag("AFTER", w - pad - aw, C.gold, "#fff");
+
+    // 下部バンド
+    ctx.fillStyle = C.champagne; ctx.fillRect(0, h, w, band);
+    ctx.fillStyle = C.gold; ctx.fillRect(0, h, w, Math.max(3, Math.round(band * 0.04)));
+    ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.fillStyle = C.ink;
+    ctx.font = `700 ${Math.round(w * 0.046)}px 'Hiragino Mincho ProN','Shippori Mincho',serif`;
+    ctx.fillText("ハミュレーション", pad, h + Math.round(band * 0.13));
+    ctx.fillStyle = C.goldDark;
+    ctx.font = `700 ${Math.round(w * 0.03)}px sans-serif`;
+    ctx.textAlign = "right";
+    ctx.fillText("hamulation.com", w - pad, h + Math.round(band * 0.16));
+    ctx.textAlign = "left";
+    ctx.font = `700 ${Math.round(w * 0.032)}px sans-serif`;
+    ctx.fillText(`${m.label}ホワイトニング ${sessions}回で「${SHADES[shadeIdx].name}」相当の白さイメージ`, pad, h + Math.round(band * 0.45));
+    ctx.fillStyle = C.sub;
+    ctx.font = `400 ${Math.round(w * 0.026)}px sans-serif`;
+    ctx.fillText("※シミュレーションによるイメージで、効果を保証するものではありません", pad, h + Math.round(band * 0.68));
+    return out;
+  };
+
+  const downloadCanvas = (blob) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "hamulation-simulation.png";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  const shareTrack = (evName) => track(evName, {
+    method, treatment_count: sessions, shade_after: SHADES[shadeIdx].name,
+    variant: OFFER_VARIANT, source_page: "simulator",
+  });
+  const saveResultImage = () => {
+    const canvas = composeShareCanvas();
+    if (!canvas) return;
+    canvas.toBlob((blob) => { if (!blob) return; downloadCanvas(blob); shareTrack("result_save"); }, "image/png");
+  };
+  const shareResultImage = () => {
+    const canvas = composeShareCanvas();
+    if (!canvas) return;
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      const file = new File([blob], "hamulation-simulation.png", { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: "ハミュレーション", text: "ホワイトニング後の白さをシミュレーションしてみました。hamulation.com" });
+          shareTrack("result_share");
+        } catch (_) { /* ユーザーがキャンセル */ }
+      } else {
+        downloadCanvas(blob); shareTrack("result_save"); // 非対応環境は保存にフォールバック
+      }
+    }, "image/png");
+  };
+
   // 比較画面に最初に到達したとき、ユニークな結果表示を1回だけ計測(KPIの分母)
   useEffect(() => {
     if (screen === "sim" && editMode === "compare" && imgSrc && !resultViewedRef.current) {
@@ -435,9 +562,9 @@ export default function WhiteningSimulator() {
       .then((region) => {
         if (detectSeqRef.current !== seq) return; // 別の画像に切り替わった
         if (region && !userMovedRef.current) {
-          setMouth(region);
+          setMouth({ cx: region.cx, cy: region.cy, r: region.r });
           setDetectMsg("口元を自動検出しました。枠のドラッグやスライダーで微調整できます");
-          track("sim_autodetect", { result: "ok" });
+          track("sim_autodetect", { result: "ok", padded: !!region.padded });
         } else if (!region) {
           setDetectMsg("自動検出できませんでした。金色の枠を口元に合わせてください");
           track("sim_autodetect", { result: "not_found" });
@@ -995,6 +1122,24 @@ export default function WhiteningSimulator() {
                 </div>
               )}
               {imgStatus && <div style={{ fontSize: 12, color: "#B4452F", marginTop: 8, lineHeight: 1.6 }}>{imgStatus}</div>}
+
+              {/* ---------- Phase2-2: 結果の保存・シェア ---------- */}
+              {editMode === "compare" && (
+                <div style={{ marginTop: 12, background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: "12px 14px" }}>
+                  <div style={{ fontSize: 12, fontWeight: 900, marginBottom: 8 }}>結果を保存・シェア</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={saveResultImage} style={{ flex: 1, border: `1.5px solid ${C.gold}`, background: C.card, color: C.goldDark, fontWeight: 900, fontSize: 13, borderRadius: 12, padding: "11px 0" }}>
+                      📥 画像を保存
+                    </button>
+                    <button onClick={shareResultImage} style={{ flex: 1, border: "none", background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", fontWeight: 900, fontSize: 13, borderRadius: 12, padding: "11px 0" }}>
+                      🔗 シェアする
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 9.5, color: C.sub, marginTop: 8, lineHeight: 1.6 }}>
+                    画像には「イメージであり効果を保証しません」の注記とロゴ・URLが入ります。家族や友人への相談にもお使いいただけます。
+                  </div>
+                </div>
+              )}
 
               {/* ---------- Phase2-1: 希望時期の1問マッチング ---------- */}
               {editMode === "compare" && (
