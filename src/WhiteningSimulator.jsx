@@ -193,6 +193,24 @@ const AFFILIATES = [
     pixel: "https://www19.a8.net/0.gif?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE",
     page: "/clinic/white-meister.html",
   },
+  {
+    offerId: "whitening-cafe",
+    name: "ホワイトニングカフェ",
+    area: "全国60店舗以上(北海道〜九州)",
+    areaGroup: "national",
+    tag: "セルフ",
+    methods: ["self"],
+    price: "1回 ¥4,980(8分×2回照射)",
+    note: "しみない・痛くない・約30分のセルフホワイトニング専門店",
+    reason: "まず気軽に、低価格でホワイトニングを試したい方に",
+    cta: "1回¥4,980〜の料金と店舗を見る →",
+    stickyCta: "1回¥4,980〜の料金と店舗を見る",
+    priority: 3,
+    verifiedAt: "2026年7月",
+    href: "https://px.a8.net/svt/ejp?a8mat=4B7WD2+DE973E+5DVG+5YJRM",
+    pixel: "https://www17.a8.net/0.gif?a8mat=4B7WD2+DE973E+5DVG+5YJRM",
+    page: "/clinic/whitening-cafe.html",
+  },
 ];
 
 const METHOD_GUIDE = [
