@@ -557,6 +557,39 @@ export default function WhiteningSimulator() {
     }
   }, [screen, editMode, imgSrc]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /* スクロール演出: .hm-reveal が画面内に入ったら is-visible を付与(1要素1回)。
+     OS側で「視差効果を減らす」が有効な場合はアニメーションせず即表示する。 */
+  useEffect(() => {
+    if (screen !== "home") return;
+    const reduce = typeof window !== "undefined" && window.matchMedia
+      && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const els = Array.from(document.querySelectorAll(".hm-reveal:not(.is-visible)"));
+    if (reduce) {
+      els.forEach((el) => el.classList.add("is-visible"));
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add("is-visible");
+            io.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -8% 0px" }
+    );
+    els.forEach((el) => io.observe(el));
+    // ファーストビュー内の要素は即座に表示(監視前にすでに見えている場合の保険)
+    requestAnimationFrame(() => {
+      els.forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (r.top < window.innerHeight * 0.9) el.classList.add("is-visible");
+      });
+    });
+    return () => io.disconnect();
+  }, [screen, simIntent]);
+
   // オファーカードの可視監視: 初回可視でimpression(オファーごと1回)、画面外なら固定CTA表示
   useEffect(() => {
     const el = offerCardRef.current;
@@ -836,6 +869,22 @@ export default function WhiteningSimulator() {
         .hm-sparkle { position: absolute; pointer-events: none; animation: hmFloat 2.8s ease-in-out infinite alternate; }
         @keyframes hmShine { 0% { transform: translateX(-130%) skewX(-20deg); } 55%, 100% { transform: translateX(280%) skewX(-20deg); } }
         @keyframes hmFloat { from { transform: translateY(0) rotate(-4deg); } to { transform: translateY(-9px) rotate(6deg); } }
+
+        /* スクロール演出: 画面内に入るとふわっと立ち上がる */
+        .hm-reveal { opacity: 0; transform: translateY(20px); will-change: opacity, transform;
+          transition: opacity .65s cubic-bezier(.22,.7,.3,1), transform .65s cubic-bezier(.22,.7,.3,1); }
+        .hm-reveal.is-visible { opacity: 1; transform: none; }
+        /* 見出しの下線が伸びる演出 */
+        .hm-underline { position: relative; }
+        .hm-underline::after { content: ""; position: absolute; left: 0; bottom: -6px; height: 2px; width: 0;
+          background: linear-gradient(90deg, ${C.gold}, ${C.goldLight}); transition: width .8s cubic-bezier(.22,.7,.3,1) .15s; }
+        .hm-reveal.is-visible .hm-underline::after, .hm-underline.is-visible::after { width: 44px; }
+        @media (prefers-reduced-motion: reduce) {
+          .hm-reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+          .hm-underline::after { width: 44px !important; transition: none !important; }
+          .hm-cta::after { animation: none !important; }
+          .hm-sparkle { animation: none !important; }
+        }
         @media (min-width: 880px) {
           .hm-hero { grid-template-columns: 1.08fr 0.92fr; gap: 40px; padding: 26px 0 30px; }
           .hm-hero-img { display: block; }
@@ -941,7 +990,7 @@ export default function WhiteningSimulator() {
           <section style={{ background: C.champagne, borderTop: `1px solid ${C.line}`, borderBottom: `1px solid ${C.line}`, padding: "24px 0 28px" }}>
             <div className="hm-container">
               <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
-                <h2 style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 600, letterSpacing: 1, margin: 0 }}>使い方は、3ステップ</h2>
+                <h2 className="hm-underline hm-reveal" style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 600, letterSpacing: 1, margin: 0 }}>使い方は、3ステップ</h2>
                 <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 2, color: C.goldDark }}>HOW TO USE</span>
                 <button
                   onClick={goSim}
@@ -952,7 +1001,7 @@ export default function WhiteningSimulator() {
               </div>
               <div className="hm-steps">
                 {HOWTO_STEPS.map((s, i) => (
-                  <div key={s.title} className="hm-step-card" onClick={goSim} style={{ background: C.card, borderRadius: 16, overflow: "hidden", border: `1px solid ${C.line}`, cursor: "pointer" }}>
+                  <div key={s.title} className="hm-step-card hm-reveal" onClick={goSim} style={{ background: C.card, borderRadius: 16, overflow: "hidden", border: `1px solid ${C.line}`, cursor: "pointer", transitionDelay: `${i * 90}ms` }}>
                     <img src={s.img} alt={`STEP${i + 1} ${s.title}`} style={{ width: "100%", display: "block", aspectRatio: "16 / 9", objectFit: "cover" }} loading="lazy" />
                     <div style={{ padding: "10px 14px 14px", display: "flex", gap: 10, alignItems: "flex-start" }}>
                       <div style={{ flexShrink: 0, width: 26, height: 26, borderRadius: 999, background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", fontSize: 12, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2 }}>{i + 1}</div>
@@ -995,7 +1044,7 @@ export default function WhiteningSimulator() {
                 const groupMatched = simIntent ? g.key === simIntent.method : false;
                 return (
                   <div key={g.key} style={{ marginBottom: 22 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+                    <div className="hm-reveal" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
                       {METHOD_ICONS[g.key] && (
                         <img src={METHOD_ICONS[g.key]} alt="" aria-hidden="true" style={{ width: 26, height: 26 }} />
                       )}
@@ -1007,8 +1056,8 @@ export default function WhiteningSimulator() {
                     </div>
                     <p style={{ fontSize: 11.5, color: C.sub, lineHeight: 1.7, margin: "0 0 10px" }}>{g.desc}</p>
                     <div className="hm-clinics">
-                      {items.map((c) => (
-                        <div key={c.name} style={{ background: C.card, borderRadius: 18, padding: 18, border: groupMatched ? `2px solid ${C.gold}` : `1px solid ${C.line}` }}>
+                      {items.map((c, ci) => (
+                        <div key={c.name} className="hm-reveal" style={{ background: C.card, borderRadius: 18, padding: 18, border: groupMatched ? `2px solid ${C.gold}` : `1px solid ${C.line}`, transitionDelay: `${ci * 80}ms` }}>
                           <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                             <div>
                               <div style={{ fontSize: 15, fontWeight: 700 }}>{c.name}</div>
@@ -1043,7 +1092,7 @@ export default function WhiteningSimulator() {
               })}
 
             {/* ---------- 医院選びの3つの基準 ---------- */}
-            <div style={{ marginTop: 18, background: C.champagne, border: `1px solid ${C.line}`, borderRadius: 16, padding: "16px 18px" }}>
+            <div className="hm-reveal" style={{ marginTop: 18, background: C.champagne, border: `1px solid ${C.line}`, borderRadius: 16, padding: "16px 18px" }}>
               <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 600, marginBottom: 10 }}>クリニック選びで見るべき3つのポイント</div>
               {[
                 { t: "総額で比較する", d: "1回あたりの料金ではなく「目標の白さまでに必要な回数 × 単価 + 初診料など」の総額で比べるのがおすすめです。" },
@@ -1068,15 +1117,15 @@ export default function WhiteningSimulator() {
           <section style={{ background: C.champagne, borderTop: `1px solid ${C.line}`, borderBottom: `1px solid ${C.line}`, padding: "30px 0 34px" }}>
             <div className="hm-container">
               <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 6, flexWrap: "wrap" }}>
-                <h2 style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 600, letterSpacing: 1, margin: 0 }}>ホワイトニング3方式のちがい</h2>
+                <h2 className="hm-underline hm-reveal" style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 600, letterSpacing: 1, margin: 0 }}>ホワイトニング3方式のちがい</h2>
                 <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 2, color: C.goldDark }}>GUIDE</span>
               </div>
               <p style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.8, margin: "0 0 16px" }}>
                 ホワイトニングは大きく分けて3つの方式があります。かかる費用も白くなるペースも異なるので、自分のライフスタイルに合ったものを選ぶのがおすすめです。シミュレーターでは方式ごとの白さの目安も体験できます。
               </p>
               <div className="hm-steps">
-                {METHOD_GUIDE.map((g) => (
-                  <div key={g.id} style={{ background: C.card, borderRadius: 16, border: `1px solid ${C.line}`, padding: "18px 18px 16px" }}>
+                {METHOD_GUIDE.map((g, gi) => (
+                  <div key={g.id} className="hm-reveal" style={{ background: C.card, borderRadius: 16, border: `1px solid ${C.line}`, padding: "18px 18px 16px", transitionDelay: `${gi * 90}ms` }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                       <img src={g.icon} alt="" aria-hidden="true" style={{ width: 42, height: 42 }} />
                       <div>
@@ -1110,12 +1159,12 @@ export default function WhiteningSimulator() {
           {/* ---------- FAQ ---------- */}
           <div className="hm-container" style={{ paddingTop: 28, paddingBottom: 44 }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
-              <h2 style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 600, letterSpacing: 1, margin: 0 }}>よくある質問</h2>
+              <h2 className="hm-underline hm-reveal" style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 600, letterSpacing: 1, margin: 0 }}>よくある質問</h2>
               <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 2, color: C.goldDark }}>FAQ</span>
             </div>
             <div style={{ display: "grid", gap: 8, maxWidth: 780 }}>
-              {FAQS.map((f) => (
-                <details key={f.q} style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: "0 16px" }}>
+              {FAQS.map((f, fi) => (
+                <details key={f.q} className="hm-reveal" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: "0 16px", transitionDelay: `${Math.min(fi, 4) * 60}ms` }}>
                   <summary style={{ cursor: "pointer", listStyle: "none", display: "flex", alignItems: "center", gap: 10, padding: "13px 0", fontSize: 13, fontWeight: 700 }}>
                     <span style={{ flexShrink: 0, color: C.gold, fontFamily: SERIF, fontWeight: 700 }}>Q.</span>{f.q}
                   </summary>
