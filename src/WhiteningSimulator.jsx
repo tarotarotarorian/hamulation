@@ -563,11 +563,16 @@ export default function WhiteningSimulator() {
     if (screen !== "home") return;
     const reduce = typeof window !== "undefined" && window.matchMedia
       && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const els = Array.from(document.querySelectorAll(".hm-reveal:not(.is-visible)"));
-    if (reduce) {
-      els.forEach((el) => el.classList.add("is-visible"));
-      return;
-    }
+    // IO非対応 or アニメ抑制設定なら、演出せず通常表示のまま(body.hm-anim を付けない)
+    if (reduce || typeof IntersectionObserver === "undefined") return;
+
+    document.body.classList.add("hm-anim");
+    const showIfInView = () => {
+      document.querySelectorAll(".hm-reveal:not(.is-visible)").forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (r.top < window.innerHeight && r.bottom > 0) el.classList.add("is-visible");
+      });
+    };
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
@@ -579,15 +584,17 @@ export default function WhiteningSimulator() {
       },
       { threshold: 0.12, rootMargin: "0px 0px -8% 0px" }
     );
-    els.forEach((el) => io.observe(el));
-    // ファーストビュー内の要素は即座に表示(監視前にすでに見えている場合の保険)
-    requestAnimationFrame(() => {
-      els.forEach((el) => {
-        const r = el.getBoundingClientRect();
-        if (r.top < window.innerHeight * 0.9) el.classList.add("is-visible");
-      });
-    });
-    return () => io.disconnect();
+    document.querySelectorAll(".hm-reveal:not(.is-visible)").forEach((el) => io.observe(el));
+    requestAnimationFrame(showIfInView);
+    // バックグラウンドタブで開かれた場合、IO/rAFは動かない。可視化時に取りこぼしを表示する
+    document.addEventListener("visibilitychange", showIfInView);
+    // 最終保険: 何らかの理由で発火しなくても、画面内の要素は必ず表示する
+    const timer = setTimeout(showIfInView, 2500);
+    return () => {
+      io.disconnect();
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", showIfInView);
+    };
   }, [screen, simIntent]);
 
   // オファーカードの可視監視: 初回可視でimpression(オファーごと1回)、画面外なら固定CTA表示
@@ -870,18 +877,21 @@ export default function WhiteningSimulator() {
         @keyframes hmShine { 0% { transform: translateX(-130%) skewX(-20deg); } 55%, 100% { transform: translateX(280%) skewX(-20deg); } }
         @keyframes hmFloat { from { transform: translateY(0) rotate(-4deg); } to { transform: translateY(-9px) rotate(6deg); } }
 
-        /* スクロール演出: 画面内に入るとふわっと立ち上がる */
-        .hm-reveal { opacity: 0; transform: translateY(20px); will-change: opacity, transform;
-          transition: opacity .65s cubic-bezier(.22,.7,.3,1), transform .65s cubic-bezier(.22,.7,.3,1); }
-        .hm-reveal.is-visible { opacity: 1; transform: none; }
-        /* 見出しの下線が伸びる演出 */
+        /* スクロール演出。⚠️ 既定は「表示」。JSが動く環境でのみ body.hm-anim を付けて隠す
+           (プログレッシブ・エンハンスメント)。JS不達・IO未対応・バックグラウンドタブでも
+           コンテンツが消えないようにするための設計なので、既定値を opacity:0 に戻さないこと。 */
         .hm-underline { position: relative; }
-        .hm-underline::after { content: ""; position: absolute; left: 0; bottom: -6px; height: 2px; width: 0;
-          background: linear-gradient(90deg, ${C.gold}, ${C.goldLight}); transition: width .8s cubic-bezier(.22,.7,.3,1) .15s; }
-        .hm-reveal.is-visible .hm-underline::after, .hm-underline.is-visible::after { width: 44px; }
+        .hm-underline::after { content: ""; position: absolute; left: 0; bottom: -6px; height: 2px; width: 44px;
+          background: linear-gradient(90deg, ${C.gold}, ${C.goldLight}); }
+        .hm-anim .hm-reveal { opacity: 0; transform: translateY(20px); will-change: opacity, transform;
+          transition: opacity .65s cubic-bezier(.22,.7,.3,1), transform .65s cubic-bezier(.22,.7,.3,1); }
+        .hm-anim .hm-reveal.is-visible { opacity: 1; transform: none; }
+        .hm-anim .hm-underline::after { width: 0; transition: width .8s cubic-bezier(.22,.7,.3,1) .15s; }
+        .hm-anim .hm-reveal.is-visible .hm-underline::after,
+        .hm-anim .hm-underline.is-visible::after { width: 44px; }
         @media (prefers-reduced-motion: reduce) {
-          .hm-reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
-          .hm-underline::after { width: 44px !important; transition: none !important; }
+          .hm-anim .hm-reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+          .hm-anim .hm-underline::after { width: 44px !important; transition: none !important; }
           .hm-cta::after { animation: none !important; }
           .hm-sparkle { animation: none !important; }
         }
