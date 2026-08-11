@@ -251,6 +251,29 @@ const AFFILIATES = [
   },
 ];
 
+/* トップの掲載一覧を方式でジャンル分けするためのグループ定義。
+   AFFILIATESのmethodsと突き合わせ、該当案件が1件もないグループは非表示になる。 */
+const CLINIC_GROUPS = [
+  {
+    key: "office",
+    label: "オフィスホワイトニング",
+    sub: "歯科医院で施術",
+    desc: "医療機関でのみ扱える薬剤を使うため、もともとの歯の色より白くすることを目指せる方式です(効果には個人差があります)。",
+  },
+  {
+    key: "home",
+    label: "ホームホワイトニング",
+    sub: "歯科医院のマウスピース",
+    desc: "歯科医院で作る専用マウスピースを使い、自宅で少しずつ白くしていく方式です。",
+  },
+  {
+    key: "self",
+    label: "セルフ・自宅ケア",
+    sub: "サロン / 自宅",
+    desc: "歯の表面の着色汚れ(ステイン)のケアが中心です。医療行為ではないため、目安は「本来の歯の色」までとなります。",
+  },
+];
+
 const METHOD_GUIDE = [
   {
     id: "office", icon: "/method1.png", name: "オフィスホワイトニング", place: "歯科医院",
@@ -957,49 +980,67 @@ export default function WhiteningSimulator() {
               </p>
             )}
 
-            <div className="hm-clinics">
-              {(simIntent
-                ? [...AFFILIATES].sort((a, b) => (b.methods.includes(simIntent.method) ? 1 : 0) - (a.methods.includes(simIntent.method) ? 1 : 0))
-                : AFFILIATES
-              ).map((c) => {
-                const matched = simIntent ? c.methods.includes(simIntent.method) : false;
+            {/* 方式ごとにグループ分けして表示(該当案件がないグループは非表示)。
+                simIntentがある場合は、選んだ方式のグループを先頭に出す。 */}
+            {[...CLINIC_GROUPS]
+              .sort((a, b) => {
+                if (!simIntent) return 0;
+                return (b.key === simIntent.method ? 1 : 0) - (a.key === simIntent.method ? 1 : 0);
+              })
+              .map((g) => {
+                const items = AFFILIATES
+                  .filter((c) => c.methods.includes(g.key))
+                  .sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
+                if (items.length === 0) return null;
+                const groupMatched = simIntent ? g.key === simIntent.method : false;
                 return (
-                <div key={c.name} style={{ background: C.card, borderRadius: 18, padding: 18, border: matched ? `2px solid ${C.gold}` : `1px solid ${C.line}` }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                    <div>
-                      <div style={{ fontSize: 15, fontWeight: 700 }}>{c.name}</div>
-                      <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>{c.area}</div>
-                      <div style={{ fontSize: 11.5, color: C.ink, marginTop: 5 }}>{c.note}</div>
+                  <div key={g.key} style={{ marginBottom: 22 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+                      {METHOD_ICONS[g.key] && (
+                        <img src={METHOD_ICONS[g.key]} alt="" aria-hidden="true" style={{ width: 26, height: 26 }} />
+                      )}
+                      <h3 style={{ fontFamily: SERIF, fontSize: 16.5, fontWeight: 600, margin: 0 }}>{g.label}</h3>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, color: C.goldDark, background: C.champagne, border: `1px solid ${C.line}`, borderRadius: 999, padding: "3px 10px" }}>{g.sub}</span>
+                      {groupMatched && (
+                        <span style={{ fontSize: 10, fontWeight: 900, color: "#fff", background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, borderRadius: 999, padding: "3px 10px" }}>あなたの選んだ方式</span>
+                      )}
                     </div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.goldDark, background: C.champagne, border: `1px solid ${C.line}`, borderRadius: 8, padding: "4px 8px", height: "fit-content", whiteSpace: "nowrap" }}>{c.tag}</div>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, gap: 10, flexWrap: "wrap" }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 900, color: C.goldDark }}>{c.price}</div>
-                    <a
-                      href={c.href}
-                      target="_blank"
-                      rel="nofollow sponsored noopener"
-                      onClick={() => track("affiliate_click", { clinic: c.name })}
-                      style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", fontWeight: 900, fontSize: 12.5, borderRadius: 999, padding: "10px 20px", textDecoration: "none", boxShadow: "0 4px 12px rgba(192,145,60,0.3)" }}
-                    >
-                      公式サイトで予約 →
-                    </a>
-                    <img src={c.pixel} alt="" width="1" height="1" style={{ border: 0, position: "absolute", opacity: 0 }} />
-                  </div>
-                  {c.page && (
-                    <a href={c.page} onClick={() => track("clinic_page_view", { clinic: c.name })} style={{ display: "inline-block", marginTop: 10, fontSize: 11.5, fontWeight: 700, color: C.goldDark }}>
-                      特徴・条件の詳細を見る →
-                    </a>
-                  )}
-                  {simIntent && !matched && (
-                    <div style={{ fontSize: 10.5, color: C.sub, marginTop: 10, lineHeight: 1.6 }}>
-                      ※シミュレーションで選んだ方式({simIntent.methodLabel})とは異なる方式のお店です
+                    <p style={{ fontSize: 11.5, color: C.sub, lineHeight: 1.7, margin: "0 0 10px" }}>{g.desc}</p>
+                    <div className="hm-clinics">
+                      {items.map((c) => (
+                        <div key={c.name} style={{ background: C.card, borderRadius: 18, padding: 18, border: groupMatched ? `2px solid ${C.gold}` : `1px solid ${C.line}` }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                            <div>
+                              <div style={{ fontSize: 15, fontWeight: 700 }}>{c.name}</div>
+                              <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>{c.area}</div>
+                              <div style={{ fontSize: 11.5, color: C.ink, marginTop: 5 }}>{c.note}</div>
+                            </div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: C.goldDark, background: C.champagne, border: `1px solid ${C.line}`, borderRadius: 8, padding: "4px 8px", height: "fit-content", whiteSpace: "nowrap" }}>{c.tag}</div>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, gap: 10, flexWrap: "wrap" }}>
+                            <div style={{ fontSize: 13.5, fontWeight: 900, color: C.goldDark }}>{c.price}</div>
+                            <a
+                              href={c.href}
+                              target="_blank"
+                              rel="nofollow sponsored noopener"
+                              onClick={() => track("affiliate_click", { clinic: c.name, offer_id: c.offerId, position: "clinic_list", method: g.key })}
+                              style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", fontWeight: 900, fontSize: 12.5, borderRadius: 999, padding: "10px 20px", textDecoration: "none", boxShadow: "0 4px 12px rgba(192,145,60,0.3)" }}
+                            >
+                              {g.key === "self" ? "公式サイトを見る →" : "公式サイトで予約 →"}
+                            </a>
+                            <img src={c.pixel} alt="" width="1" height="1" style={{ border: 0, position: "absolute", opacity: 0 }} />
+                          </div>
+                          {c.page && (
+                            <a href={c.page} onClick={() => track("clinic_page_view", { clinic: c.name, offer_id: c.offerId })} style={{ display: "inline-block", marginTop: 10, fontSize: 11.5, fontWeight: 700, color: C.goldDark }}>
+                              特徴・条件の詳細を見る →
+                            </a>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </div>
+                  </div>
                 );
               })}
-            </div>
 
             {/* ---------- 医院選びの3つの基準 ---------- */}
             <div style={{ marginTop: 18, background: C.champagne, border: `1px solid ${C.line}`, borderRadius: 16, padding: "16px 18px" }}>
@@ -1050,6 +1091,15 @@ export default function WhiteningSimulator() {
                     </div>
                   </div>
                 ))}
+              </div>
+              <div style={{ marginTop: 14 }}>
+                <a
+                  href="/whitening/price.html"
+                  onClick={() => track("to_price_page", { position: "guide" })}
+                  style={{ display: "inline-block", fontSize: 12.5, fontWeight: 700, color: C.goldDark, background: C.card, border: `1.5px solid ${C.gold}`, borderRadius: 999, padding: "10px 20px", textDecoration: "none" }}
+                >
+                  💰 ホワイトニングの費用・料金相場をくわしく見る →
+                </a>
               </div>
               <p style={{ fontSize: 10, color: C.sub, lineHeight: 1.6, marginTop: 14, marginBottom: 0 }}>
                 ※料金は一般的な目安です。実際の料金・施術内容は各歯科医院・サロンにご確認ください。※効果の感じ方には個人差があります。
@@ -1436,6 +1486,7 @@ export default function WhiteningSimulator() {
         <ShadeStrip height={5} radius={0} />
         <div style={{ padding: "26px 20px 40px", textAlign: "center" }}>
           <div style={{ fontSize: 11, color: C.sub, display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap" }}>
+            <a href="/whitening/price.html" style={{ color: C.goldDark, fontWeight: 700 }}>費用・料金相場</a>
             <a href="https://column.hamulation.com/" style={{ color: C.goldDark, fontWeight: 700 }}>コラム</a>
             <a href="/privacy.html" style={{ color: C.sub }}>プライバシーポリシー</a>
             <a href="/terms.html" style={{ color: C.sub }}>免責事項</a>
