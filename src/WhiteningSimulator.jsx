@@ -230,6 +230,47 @@ const AFFILIATES = [
     page: "/clinic/yc-whitening.html",
   },
   {
+    // 大阪の医療ホワイトニング専門歯科。オフィス/ホーム両方を扱うため methods に home を含む
+    // (2026-08時点で唯一のホーム案件)。料金は公式サイトが画像主体で確認できないため数値を書かない。
+    offerId: "pearl-whitening",
+    name: "パールホワイトニング",
+    area: "大阪(梅田・肥後橋)",
+    areaGroup: "kansai",
+    tag: "オフィス/ホーム",
+    methods: ["office", "home"],
+    price: "料金は公式サイトにて",
+    note: "医療ホワイトニング専門歯科 / 完全個室・しみ止め塗布・施術当日も飲食OK",
+    reason: "大阪で、通院と自宅ケアを組み合わせて白さを保ちたい方に",
+    cta: "大阪の料金と予約枠を見る →",
+    stickyCta: "大阪の料金と予約枠を見る",
+    priority: 6,
+    verifiedAt: "2026年8月",
+    href: "https://t.afi-b.com/visit.php?a=q14008U-e494244m&p=i987887d",
+    pixel: "https://t.afi-b.com/lead/q14008U/i987887d/e494244m",
+    page: "/clinic/pearl-whitening.html",
+  },
+  {
+    // オンライン診療にもとづき歯科医師が処方した高濃度ジェルを、無人サロンで自分で照射する形態。
+    // 過酸化物を使うため到達目安はオフィス相当(methods:["office"])。ただし歯科医院での対面施術
+    // ではないので tag で区別すること。⚠️月額制で解約金の条件があるため、必ず注記を残す。
+    offerId: "haku-whitening",
+    name: "メディカルホワイトニングHAKU",
+    area: "全国100店舗(24時間営業の店舗あり)",
+    areaGroup: "national",
+    tag: "メディカル",
+    methods: ["office"],
+    price: "月額制(通い放題プランあり)",
+    note: "オンライン診療+歯科医師の処方による医療ジェルを、無人サロンでセルフ照射",
+    reason: "回数を重ねて、自分のペースで通いたい方に",
+    cta: "プラン内容と店舗を見る →",
+    stickyCta: "プラン内容と店舗を見る",
+    priority: 7,
+    verifiedAt: "2026年8月",
+    href: "https://t.afi-b.com/visit.php?a=z15273H-X498478n&p=i987887d",
+    pixel: "https://t.afi-b.com/lead/z15273H/i987887d/X498478n",
+    page: "/clinic/haku-whitening.html",
+  },
+  {
     // 医薬部外品のホワイトニングジェル(自宅ケア)。過酸化物による漂白ではないため
     // methods は self(表面の着色ケア)。歯科のホームホワイトニングとは別物なので混同表記しないこと。
     offerId: "lulu-white",
