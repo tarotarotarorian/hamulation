@@ -28,6 +28,13 @@ const C = {
 
 const SERIF = "'Shippori Mincho','Hiragino Mincho ProN',serif";
 
+/* ファイル入力を視覚的に隠すスタイル。⚠️ display:none にしないこと。
+   display:none だと一部端末で label 経由のタップが効かず、写真選択に進めない事故が起きる。 */
+const SR_ONLY = {
+  position: "absolute", width: 1, height: 1, padding: 0, margin: -1,
+  overflow: "hidden", clip: "rect(0,0,0,0)", whiteSpace: "nowrap", border: 0,
+};
+
 /* --- GA4イベント送信(gtag未読込時は何もしない) --- */
 function track(name, params) {
   if (typeof window !== "undefined" && typeof window.gtag === "function") {
@@ -910,6 +917,10 @@ export default function WhiteningSimulator() {
         .hm-steps { display: grid; grid-template-columns: 1fr; gap: 12px; }
         .hm-clinics { display: grid; grid-template-columns: 1fr; gap: 12px; }
         .hm-step-card { transition: transform .18s ease; }
+        /* クリック可能なカード。押せることが伝わるよう、押下時に少し沈ませる */
+        .hm-clickcard { transition: transform .15s ease, box-shadow .15s ease; }
+        .hm-clickcard:active { transform: scale(0.985); }
+        @media (hover: hover) { .hm-clickcard:hover { box-shadow: 0 8px 22px rgba(43,36,26,0.10); } }
         .hm-cta { position: relative; overflow: hidden; }
         .hm-cta::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 42%;
           background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
@@ -1108,7 +1119,14 @@ export default function WhiteningSimulator() {
                     <p style={{ fontSize: 11.5, color: C.sub, lineHeight: 1.7, margin: "0 0 10px" }}>{g.desc}</p>
                     <div className="hm-clinics">
                       {items.map((c, ci) => (
-                        <div key={c.name} className="hm-reveal" style={{ background: C.card, borderRadius: 18, padding: 18, border: groupMatched ? `2px solid ${C.gold}` : `1px solid ${C.line}`, transitionDelay: `${ci * 80}ms` }}>
+                        // カード全体をクリック可能に(詳細ページへ)。カード内のリンク/ボタンは
+                        // stopPropagation して二重発火を防ぐ。デッドクリック対策。
+                        <div
+                          key={c.name}
+                          className="hm-reveal hm-clickcard"
+                          onClick={() => { if (c.page) { track("clinic_page_view", { clinic: c.name, offer_id: c.offerId, position: "card_body" }); window.location.href = c.page; } }}
+                          style={{ background: C.card, borderRadius: 18, padding: 18, border: groupMatched ? `2px solid ${C.gold}` : `1px solid ${C.line}`, transitionDelay: `${ci * 80}ms`, cursor: c.page ? "pointer" : "default" }}
+                        >
                           <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                             <div>
                               <div style={{ fontSize: 15, fontWeight: 700 }}>{c.name}</div>
@@ -1123,7 +1141,7 @@ export default function WhiteningSimulator() {
                               href={c.href}
                               target="_blank"
                               rel="nofollow sponsored noopener"
-                              onClick={() => track("affiliate_click", { clinic: c.name, offer_id: c.offerId, position: "clinic_list", method: g.key })}
+                              onClick={(e) => { e.stopPropagation(); track("affiliate_click", { clinic: c.name, offer_id: c.offerId, position: "clinic_list", method: g.key }); }}
                               style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", fontWeight: 900, fontSize: 12.5, borderRadius: 999, padding: "10px 20px", textDecoration: "none", boxShadow: "0 4px 12px rgba(192,145,60,0.3)" }}
                             >
                               {g.key === "self" ? "公式サイトを見る →" : "公式サイトで予約 →"}
@@ -1131,7 +1149,7 @@ export default function WhiteningSimulator() {
                             <img src={c.pixel} alt="" width="1" height="1" style={{ border: 0, position: "absolute", opacity: 0 }} />
                           </div>
                           {c.page && (
-                            <a href={c.page} onClick={() => track("clinic_page_view", { clinic: c.name, offer_id: c.offerId })} style={{ display: "inline-block", marginTop: 10, fontSize: 11.5, fontWeight: 700, color: C.goldDark }}>
+                            <a href={c.page} onClick={(e) => { e.stopPropagation(); track("clinic_page_view", { clinic: c.name, offer_id: c.offerId, position: "text_link" }); }} style={{ display: "inline-block", marginTop: 10, fontSize: 11.5, fontWeight: 700, color: C.goldDark }}>
                               特徴・条件の詳細を見る →
                             </a>
                           )}
@@ -1176,7 +1194,12 @@ export default function WhiteningSimulator() {
               </p>
               <div className="hm-steps">
                 {METHOD_GUIDE.map((g, gi) => (
-                  <div key={g.id} className="hm-reveal" style={{ background: C.card, borderRadius: 16, border: `1px solid ${C.line}`, padding: "18px 18px 16px", transitionDelay: `${gi * 90}ms` }}>
+                  <div
+                    key={g.id}
+                    className="hm-reveal hm-clickcard"
+                    onClick={() => { track("to_price_page", { position: "method_guide", method: g.id }); window.location.href = "/whitening/price.html#" + g.id; }}
+                    style={{ background: C.card, borderRadius: 16, border: `1px solid ${C.line}`, padding: "18px 18px 16px", transitionDelay: `${gi * 90}ms`, cursor: "pointer" }}
+                  >
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                       <img src={g.icon} alt="" aria-hidden="true" style={{ width: 42, height: 42 }} />
                       <div>
@@ -1248,10 +1271,10 @@ export default function WhiteningSimulator() {
               <div style={{ fontSize: 40 }}>😁</div>
               <div style={{ fontFamily: SERIF, fontWeight: 600, fontSize: 17, margin: "8px 0 4px" }}>歯が見える笑顔の写真を用意</div>
               <div style={{ fontSize: 12, color: C.sub, marginBottom: 20 }}>明るい場所で、歯がはっきり写っているほど精度が上がります</div>
-              <label style={{ display: "block", background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", fontWeight: 900, borderRadius: 14, padding: "14px 0", fontSize: 14, marginBottom: 10, cursor: "pointer" }}>
+              <label htmlFor="hm-photo-input" style={{ display: "block", background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", fontWeight: 900, borderRadius: 14, padding: "14px 0", fontSize: 14, marginBottom: 10, cursor: "pointer" }}>
                 📷 写真をアップロード
-                <input type="file" accept="image/*" onChange={onFile} style={{ display: "none" }} />
               </label>
+              <input id="hm-photo-input" type="file" accept="image/*" onChange={onFile} style={SR_ONLY} />
               <button onClick={startCamera} style={{ width: "100%", background: C.card, color: C.goldDark, fontWeight: 900, borderRadius: 14, padding: "13px 0", fontSize: 14, border: `2px solid ${C.gold}` }}>
                 🤳 インカメラで撮影
               </button>
@@ -1317,10 +1340,10 @@ export default function WhiteningSimulator() {
               )}
               {editMode === "compare" && (
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-                  <label style={{ fontSize: 12, color: C.goldDark, fontWeight: 700, cursor: "pointer" }}>
+                  <label htmlFor="hm-photo-input-2" style={{ fontSize: 12, color: C.goldDark, fontWeight: 700, cursor: "pointer", textDecoration: "underline" }}>
                     写真を変更
-                    <input type="file" accept="image/*" onChange={onFile} style={{ display: "none" }} />
                   </label>
+                  <input id="hm-photo-input-2" type="file" accept="image/*" onChange={onFile} style={SR_ONLY} />
                   <button onClick={() => setEditMode("area")} style={{ background: "none", border: `1.5px solid ${C.gold}`, color: C.goldDark, fontWeight: 700, fontSize: 11, borderRadius: 999, padding: "5px 12px" }}>
                     範囲を調整し直す
                   </button>
