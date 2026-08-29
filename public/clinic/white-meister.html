@@ -69,7 +69,18 @@
     .price-box .row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 12.5px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
     .price-box .row:last-of-type { border-bottom: none; }
     .price-box .total { font-size: 20px; font-weight: 900; color: var(--gold-dark); font-family: 'Shippori Mincho',serif; }
-    .doctor { display: flex; gap: 14px; align-items: flex-start; }
+    .figs { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 0 0 14px; }
+    @media (min-width: 620px) { .figs { grid-template-columns: 1fr 1fr; } }
+    .figs figure { margin: 0; }
+    .figs img { width: 100%; height: auto; display: block; border-radius: 14px; border: 1px solid var(--line); }
+    .figs figcaption { font-size: 11px; color: var(--sub); margin-top: 5px; }
+    .doctor { display: flex; gap: 16px; align-items: flex-start; }
+    .doctor-photo { flex-shrink: 0; width: 116px; }
+    .doctor-photo img { width: 116px; height: 116px; border-radius: 999px; object-fit: cover; display: block; border: 3px solid var(--champagne); }
+    @media (max-width: 480px) { .doctor { flex-direction: column; } .doctor-photo { width: 100px; } .doctor-photo img { width: 100px; height: 100px; } }
+    .mapbox { border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: var(--card); line-height: 0; }
+    .mapbox iframe { width: 100%; height: 320px; border: 0; display: block; }
+    .access { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; margin-bottom: 12px; font-size: 13px; line-height: 1.9; }
     .doctor .name { font-family: 'Shippori Mincho',serif; font-size: 16px; font-weight: 600; }
     .doctor .role { font-size: 11px; color: var(--gold-dark); font-weight: 700; margin-bottom: 6px; }
     .quals { list-style: none; padding: 0; margin: 8px 0 0; }
@@ -116,6 +127,16 @@
 
     <h2>院内の様子</h2>
     <p>「歯科医院は怖い場所」という印象を変えることを大切にしており、美容院やプライベートサロンのような感覚で通える空間づくりがされています。</p>
+    <div class="figs">
+      <figure>
+        <img src="/img/wm-interior-02.jpg" width="720" height="480" loading="lazy" alt="ホワイトマイスター東京銀座院の待合スペースと受付" />
+        <figcaption>白を基調とした待合スペースと受付</figcaption>
+      </figure>
+      <figure>
+        <img src="/img/wm-interior-01.jpg" width="768" height="512" loading="lazy" alt="院内に展示されたホワイトニング関連の資格や取り扱い製品" />
+        <figcaption>院内には資格の証書や取り扱い製品が並ぶ</figcaption>
+      </figure>
+    </div>
     <div class="card">
       <h3 style="margin-top:0;">待合スペース</h3>
       <p style="margin-bottom:14px;">落ち着いた雰囲気の入口を抜けると、広めの待合室。受付でお好みのウェルカムティーを選べます。</p>
@@ -145,6 +166,9 @@
     <h2>院長・歯科医師</h2>
     <div class="card">
       <div class="doctor">
+        <div class="doctor-photo">
+          <img src="/img/wm-doctor.jpg" width="360" height="360" loading="lazy" alt="ホワイトマイスター院長・歯科医師 小林彩" />
+        </div>
         <div>
           <div class="role">ホワイトマイスター代表歯科医師</div>
           <div class="name">院長・歯科医師 ｜ 小林 彩</div>
@@ -177,6 +201,22 @@
       <tr><th>予約</th><td>Web予約可</td><td class="vs">医院により異なる</td></tr>
     </table>
     <p class="note" style="margin-top:8px;">※掲載情報は2026年8月時点の公式サイト情報をもとにしています。※自由診療のため公的保険は適用されません。料金・診療時間などの最新情報は公式サイトでご確認ください。</p>
+
+    <h2>アクセス</h2>
+    <div class="access">
+      <div><b>ホワイトマイスター東京銀座院</b></div>
+      <div>東京都中央区銀座4-8-11 善隣ビル6F</div>
+      <div>銀座駅 N1出口(三越口)より 徒歩1分</div>
+    </div>
+    <div class="mapbox">
+      <iframe
+        src="https://www.google.com/maps/embed?pb=!1m3!3m2!1m1!4s238754726592821223!3m1!1sja!5m1!1sja"
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        title="ホワイトマイスター東京銀座院の地図"
+        allowfullscreen></iframe>
+    </div>
+    <p class="note" style="margin-top:8px;">※地図はGoogleマップの埋め込みです。詳しい行き方は公式サイトのアクセスページをご確認ください。</p>
 
     <h2>こんな人に向いています</h2>
     <div class="card">
