@@ -10,7 +10,9 @@ import { useState, useRef, useEffect, useCallback } from "react";
    ------------------------------------------------------------------ */
 
 /* 画像アセット(public/ 直下)。空文字にするとフォールバック表示 */
-const LOGO_SRC = "/logo.png";
+// 配布パッケージに画像ロゴが含まれていないため、テキストのブランド表記を使う。
+// 欠落した画像へのリクエストを避け、ヘッダーのアクセシブルな名称も維持する。
+const LOGO_SRC = "";
 const HERO_SRC = "/hero.jpg";
 const METHOD_ICONS = { office: "/method1.png", home: "/method2.png", self: "/method3.png" };
 
@@ -443,6 +445,7 @@ export default function WhiteningSimulator() {
   const resultViewedRef = useRef(false); // sim_result_view を1セッション1回に
   const impressedOfferRef = useRef(null); // offer_impression をオファーごと1回に
   const offerCardRef = useRef(null); // 結果オファーカードの可視監視用
+  const campaignStartedRef = useRef(false); // UTM付き導線での二重起動を防止
 
   const m = METHODS.find((x) => x.id === method);
   // 方式別の到達上限(maxIdx)で、シェードゲージと画像加工のintensityを同期してキャップする。
@@ -476,7 +479,12 @@ export default function WhiteningSimulator() {
     variant: OFFER_VARIANT,
     source_page: "simulator",
   });
-  const trackOfferClick = (offer, position) => track("offer_click", offerParams(offer, position));
+  const trackOfferClick = (offer, position) => {
+    const params = offerParams(offer, position);
+    // 既存のABテスト用イベントを残しつつ、ページ横断の送客KPIも揃える。
+    track("offer_click", params);
+    track("affiliate_click", params);
+  };
 
   /* ---------- Phase2-1: 希望時期の1問マッチング ----------
      時期に応じて推奨方式・文言を出し分ける。2週間以内は「少ない回数で変化を感じやすい」
@@ -604,6 +612,27 @@ export default function WhiteningSimulator() {
       });
     }
   }, [screen, editMode, imgSrc]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // コラム・料金ページの「シミュレーションする」導線は、着地後にもう一度CTAを
+  // 押させず、画像選択画面へ直接案内する。UTMは計測後にURLから取り除く。
+  useEffect(() => {
+    if (campaignStartedRef.current || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const source = params.get("utm_source");
+    if (!source) return;
+
+    campaignStartedRef.current = true;
+    setScreen("sim");
+    window.scrollTo(0, 0);
+    track("sim_start", {
+      entry_point: source,
+      medium: params.get("utm_medium") || "unknown",
+      campaign: params.get("utm_campaign") || "",
+    });
+    track("sim_open", { entry_point: source });
+    window.history.replaceState({}, "", window.location.pathname + window.location.hash);
+    getVision().catch(() => {});
+  }, []);
 
   /* スクロール演出: .hm-reveal が画面内に入ったら is-visible を付与(1要素1回)。
      OS側で「視差効果を減らす」が有効な場合はアニメーションせず即表示する。 */
@@ -774,6 +803,7 @@ export default function WhiteningSimulator() {
 
   const onFile = (e) => {
     const f = e.target.files && e.target.files[0];
+    if (f) track("sim_photo_selected", { source: "upload" });
     loadFile(f);
     e.target.value = ""; // 同じファイルの再選択を許可
   };
@@ -825,6 +855,7 @@ export default function WhiteningSimulator() {
       setMouth({ cx: 0.5, cy: 0.62, r: 0.16 });
       setImgSrc(url);
       stopCamera();
+      track("sim_photo_selected", { source: "camera" });
       track("sim_photo_loaded", { source: "camera" });
       autoDetectMouth(img);
     };
@@ -897,7 +928,8 @@ export default function WhiteningSimulator() {
   const goSim = () => {
     setScreen("sim");
     window.scrollTo(0, 0);
-    track("sim_open");
+    track("sim_start", { entry_point: "onsite_cta" });
+    track("sim_open", { entry_point: "onsite_cta" });
     getVision().catch(() => {}); // 写真選択中にモデルを先読み(ウォームアップ)
   };
 
