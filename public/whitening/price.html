@@ -105,6 +105,26 @@
     .muted { color:var(--muted); font-size:11px; }
     .detail-link { color:var(--gold-deep); font-weight:900; font-size:11px; text-decoration:none; border-bottom:1px solid currentColor; }
     .table-note { margin:12px 0 0; color:var(--muted); font-size:10.5px; line-height:1.85; }
+    .visual-compare { display:grid; grid-template-columns:1.15fr .85fr; gap:18px; align-items:stretch; }
+    .price-chart, .method-guide { margin:0; padding:25px; background:var(--paper); border:1px solid var(--line); border-radius:20px; }
+    .chart-kicker { margin:0 0 5px; color:var(--gold-deep); font-family:'DM Sans',sans-serif; font-size:10px; font-weight:700; letter-spacing:.12em; }
+    .chart-title { margin:0 0 5px; font-family:'Shippori Mincho',serif; font-size:21px; }
+    .chart-sub { margin:0 0 19px; color:var(--muted); font-size:11px; line-height:1.75; }
+    .bar-list { display:grid; gap:9px; }
+    .bar-row { display:grid; grid-template-columns:78px 1fr 56px; gap:9px; align-items:center; font-size:11px; }
+    .bar-label { font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .bar-track { height:13px; overflow:hidden; border-radius:99px; background:#f2ebdf; }
+    .bar-fill { height:100%; min-width:5px; border-radius:inherit; background:linear-gradient(90deg,#d8b775,#b47e32); }
+    .bar-value { color:var(--gold-deep); font-family:'DM Sans',sans-serif; font-size:12px; font-weight:700; text-align:right; white-space:nowrap; }
+    .chart-foot { margin:16px 0 0; color:var(--muted); font-size:10px; line-height:1.75; }
+    .method-steps { display:grid; gap:9px; }
+    .method-step { display:grid; grid-template-columns:32px 1fr; gap:10px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); }
+    .method-step:last-child { border-bottom:0; }
+    .method-icon { width:32px; height:32px; border-radius:50%; display:grid; place-items:center; background:#f2e4d2; color:var(--gold-deep); font-family:'DM Sans',sans-serif; font-size:10px; font-weight:700; }
+    .method-step b { display:block; font-size:12px; }
+    .method-step span { display:block; margin-top:2px; color:var(--muted); font-size:10px; line-height:1.6; }
+    .method-image { margin:16px 0 0; overflow:hidden; border-radius:12px; }
+    .method-image img { display:block; width:100%; aspect-ratio:5/1; object-fit:cover; object-position:center 57%; }
     .plans { padding-top:54px; }
     .plans-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
     .plan { display:flex; flex-direction:column; padding:23px; background:var(--paper); border:1px solid var(--line); border-radius:20px; box-shadow:0 8px 23px rgba(77,57,29,.045); }
@@ -142,8 +162,8 @@
     .footer-links { display:flex; justify-content:center; flex-wrap:wrap; gap:8px 17px; }
     .footer a { color:var(--muted); font-size:11px; text-decoration:none; }
     .footer p { color:var(--muted); font-size:10px; line-height:1.8; margin:18px auto 0; max-width:880px; }
-    @media (max-width:850px) { .hero-grid,.decision-grid { grid-template-columns:1fr; } .hero-visual { max-width:600px; } .guide-grid,.plans-grid { grid-template-columns:repeat(2,1fr); } .choice-grid { grid-template-columns:repeat(2,1fr); } }
-    @media (max-width:560px) { .header-inner,.container { width:min(100% - 28px,1120px); } .header-inner { min-height:56px; } .brand { font-size:16px; } .hero { padding:42px 0 40px; } h1 { font-size:29px; } .hero-lead { font-size:13px; } .hero-card { position:relative; left:auto; bottom:auto; margin:12px 10px 0; max-width:none; } section { padding:48px 0; } .section-top { display:block; } .mini-update { margin-top:8px; white-space:normal; } .guide-grid,.plans-grid,.faq-grid { grid-template-columns:1fr; } .choice { min-height:116px; } .choice-icon { margin-bottom:7px; } .plan { padding:20px; } .decision-box { padding:23px; } .decision-box p { font-size:19px; } }
+    @media (max-width:850px) { .hero-grid,.decision-grid,.visual-compare { grid-template-columns:1fr; } .hero-visual { max-width:600px; } .guide-grid,.plans-grid { grid-template-columns:repeat(2,1fr); } .choice-grid { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:560px) { .header-inner,.container { width:min(100% - 28px,1120px); } .header-inner { min-height:56px; } .brand { font-size:16px; } .hero { padding:42px 0 40px; } h1 { font-size:29px; } .hero-lead { font-size:13px; } .hero-card { position:relative; left:auto; bottom:auto; margin:12px 10px 0; max-width:none; } section { padding:48px 0; } .section-top { display:block; } .mini-update { margin-top:8px; white-space:normal; } .guide-grid,.plans-grid,.faq-grid { grid-template-columns:1fr; } .choice { min-height:116px; } .choice-icon { margin-bottom:7px; } .plan { padding:20px; } .decision-box { padding:23px; } .decision-box p { font-size:19px; } .price-chart,.method-guide { padding:20px; } .bar-row { grid-template-columns:70px 1fr 52px; gap:7px; } }
   </style>
 </head>
 <body>
@@ -191,19 +211,30 @@
         <button class="filter" type="button" data-filter="city" aria-pressed="false" id="city">都市部・通院型</button>
         <button class="filter" type="button" data-filter="home" aria-pressed="false" id="home-care">自宅中心</button>
       </div>
-      <div class="table-wrap"><table class="price-table">
-        <thead><tr><th>サービス</th><th>最初の目安</th><th>主な継続・コース料金</th><th>方式</th><th>エリア・通い方</th><th>まず確認したいこと</th></tr></thead>
-        <tbody>
-          <tr><td><div class="provider">スターホワイトニング</div><span class="tag">歯科医院</span><br><a class="detail-link" href="/clinic/star-whitening.html">詳細を見る</a></td><td><span class="money">¥2,750</span><br><span class="muted">LED 1回照射／上下16〜20本</span></td><td>2回 ¥5,500<br>3回 ¥8,250</td><td>オフィス<br><span class="muted">歯科医師・歯科衛生士が対応</span></td><td>首都圏・名古屋・大阪・神戸・福岡など<br><span class="muted">全15院の公式案内</span></td><td>照射回数と希望の白さ。公式では診察料・検査料などの追加料金なしと案内。</td></tr>
-          <tr><td><div class="provider">YCホワイトニング</div><span class="tag">歯科医院</span><br><a class="detail-link" href="/clinic/yc-whitening.html">詳細を見る</a></td><td><span class="money">¥2,970</span><br><span class="muted">BASIC 8分照射・1回</span></td><td>ラグジュアリー<br>¥21,780／1回<br><span class="muted">回数券・月額制あり</span></td><td>オフィス<br><span class="muted">医療機関での施術</span></td><td>大阪・梅田／心斎橋<br><span class="muted">梅田院は平日20時までの案内</span></td><td>同じ「1回」でも照射時間・目標が異なる点。回数券と月額制の条件。</td></tr>
-          <tr><td><div class="provider">ホワイトマイスター</div><span class="tag">歯科医院</span><br><a class="detail-link" href="/clinic/white-meister.html">詳細を見る</a></td><td><span class="money">¥28,000</span><br><span class="muted">マイスタープラスホワイトニング</span></td><td>デュアル 初回 ¥31,000<br><span class="muted">オフィス＋選べるホームケア</span></td><td>オフィス／ホーム／デュアル</td><td>東京・銀座<br><span class="muted">銀座駅徒歩1分の公式案内</span></td><td>初回・期間限定メニューの対象。通院1回で完結するデュアルを希望するか。</td></tr>
-          <tr><td><div class="provider">パールホワイトニング</div><span class="tag">歯科医院</span><br><a class="detail-link" href="/clinic/pearl-whitening.html">詳細を見る</a></td><td><span class="money">¥19,800</span><br><span class="muted">オフィス1回／上・下各8本</span></td><td>ホーム ¥39,270<br>1か月コース ¥104,820<br>3か月コース ¥202,610</td><td>オフィス／ホーム／コース</td><td>大阪・梅田／肥後橋<br><span class="muted">完全個室・女性歯科医師の公式案内</span></td><td>目標と期限。ホームの薬剤日数、コースに含まれるオフィス回数・クリーニング。</td></tr>
-          <tr><td><div class="provider">メディカルホワイトニングHAKU</div><span class="tag">オンライン診療＋セルフ照射</span><br><a class="detail-link" href="/clinic/haku-whitening.html">詳細を見る</a></td><td><span class="money">初回無料体験</span><br><span class="muted">公式サイト掲載</span></td><td>月額 ¥11,000<br><span class="muted">大阪梅田店の通い放題プラン例</span></td><td>歯科医師の診療・処方＋自身で照射</td><td>全国100店舗の公式案内<br><span class="muted">店舗により営業時間・条件が異なる</span></td><td>店舗別の料金、3日間隔の利用ルール、最低利用・解約時の条件。</td></tr>
-          <tr><td><div class="provider">ホワイトニングカフェ</div><span class="tag">セルフサロン</span><br><a class="detail-link" href="/clinic/whitening-cafe.html">詳細を見る</a></td><td><span class="money">¥4,980</span><br><span class="muted">都度払い1回</span></td><td>4回 ¥18,000<br>8回 ¥33,600<br>12回 ¥46,800</td><td>セルフで行う着色ケア</td><td>全国70店舗の公式案内<br><span class="muted">2回目以降は最短約30分</span></td><td>歯本来の色を目指す方式であること。コースは一括払い・利用店舗の条件。</td></tr>
-          <tr><td><div class="provider">ルルシア ルルホワイト</div><span class="tag">通販・自宅ケア</span><br><a class="detail-link" href="/clinic/lulu-white.html">詳細を見る</a></td><td><span class="money">¥3,980</span><br><span class="muted">定期初回・送料無料</span></td><td>2回目以降 ¥8,980／30日ごと<br><span class="muted">1本約1か月分</span></td><td>医薬部外品の薬用ジェル</td><td>自宅・全国配送</td><td>定期コースであること。次回お届け予定日の10日前までの休止・解約連絡、90日返金保証の対象条件。</td></tr>
-        </tbody>
-      </table></div>
-      <p class="table-note">※ホワイトニングは原則として自由診療です。ルルホワイトは医薬部外品の自宅ケア商品で、歯科医院の漂白とは仕組みが異なります。※HAKUは店舗ごとに条件が異なるため大阪梅田店の掲載例を記載しています。※表示価格はすべて税込です。</p>
+      <div class="visual-compare">
+        <figure class="price-chart" role="img" aria-label="提携7サービスの開始費用を示す横棒グラフ。HAKUは初回無料体験、スターホワイトニングは2750円、YCホワイトニングは2970円、ルルホワイトは3980円、ホワイトニングカフェは4980円、パールホワイトニングは19800円、ホワイトマイスターは28000円。">
+          <p class="chart-kicker">STARTING PRICE</p><h3 class="chart-title">始めるときの費用を、ひと目で</h3><p class="chart-sub">初回・都度1回・最初の購入のいずれかを表示。方式や内容は同じではありません。</p>
+          <div class="bar-list">
+            <div class="bar-row"><span class="bar-label">HAKU</span><span class="bar-track"><span class="bar-fill" style="width:1%"></span></span><span class="bar-value">体験 ¥0</span></div>
+            <div class="bar-row"><span class="bar-label">スター</span><span class="bar-track"><span class="bar-fill" style="width:10%"></span></span><span class="bar-value">¥2,750</span></div>
+            <div class="bar-row"><span class="bar-label">YC</span><span class="bar-track"><span class="bar-fill" style="width:11%"></span></span><span class="bar-value">¥2,970</span></div>
+            <div class="bar-row"><span class="bar-label">ルルホワイト</span><span class="bar-track"><span class="bar-fill" style="width:14%"></span></span><span class="bar-value">¥3,980</span></div>
+            <div class="bar-row"><span class="bar-label">ホワイトニングカフェ</span><span class="bar-track"><span class="bar-fill" style="width:18%"></span></span><span class="bar-value">¥4,980</span></div>
+            <div class="bar-row"><span class="bar-label">パール</span><span class="bar-track"><span class="bar-fill" style="width:71%"></span></span><span class="bar-value">¥19,800</span></div>
+            <div class="bar-row"><span class="bar-label">ホワイトマイスター</span><span class="bar-track"><span class="bar-fill" style="width:100%"></span></span><span class="bar-value">¥28,000</span></div>
+          </div>
+          <figcaption class="chart-foot">※HAKUは大阪梅田店の月額¥11,000プランとは別に、初回無料体験を公式案内。表示価格はすべて税込です。</figcaption>
+        </figure>
+        <aside class="method-guide"><p class="chart-kicker">CHOOSE BY PURPOSE</p><h3 class="chart-title">まずは、方式を選ぶ</h3><p class="chart-sub">費用の数字より先に、希望するケアを絞ると選びやすくなります。</p>
+          <div class="method-steps">
+            <div class="method-step"><span class="method-icon">CL</span><div><b>歯科医院で相談したい</b><span>スターホワイトニング、YC、ホワイトマイスター、パール</span></div></div>
+            <div class="method-step"><span class="method-icon">SL</span><div><b>着色ケアを気軽に始めたい</b><span>ホワイトニングカフェ</span></div></div>
+            <div class="method-step"><span class="method-icon">HM</span><div><b>自宅・自分の時間で続けたい</b><span>HAKU、ルルホワイト</span></div></div>
+          </div>
+          <figure class="method-image"><img src="/img/shade-guide.jpg" width="1000" height="194" loading="lazy" alt="歯の色の目安を示すシェードガイド" /></figure>
+        </aside>
+      </div>
+      <p class="table-note">※ホワイトニングは原則として自由診療です。ルルホワイトは医薬部外品の自宅ケア商品で、歯科医院の漂白とは仕組みが異なります。料金・コース・利用条件は下のサービスカードと各公式サイトで確認してください。</p>
 
       <div class="plans"><div class="section-top"><div><p class="eyebrow">COMPARE IN DETAIL</p><h2>「自分に合う理由」から、もう一段深く</h2></div></div>
         <div class="plans-grid" id="plan-grid">
