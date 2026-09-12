@@ -78,6 +78,34 @@
     .choice-icon { display:block; width:30px; height:30px; margin-bottom:12px; color:var(--gold-deep); font-size:22px; line-height:1; }
     .choice b { display:block; font-size:13px; margin-bottom:5px; }
     .choice small { display:block; color:var(--muted); font-size:11px; line-height:1.7; }
+    .locations { background:#fffaf4; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+    .location-layout { display:grid; grid-template-columns:.84fr 1.16fr; gap:22px; align-items:stretch; }
+    .map-card { position:relative; display:flex; flex-direction:column; overflow:hidden; min-height:470px; padding:25px; background:linear-gradient(145deg,#f5ead8,#fffdf9); border:1px solid var(--line); border-radius:22px; }
+    .map-card h3 { margin:0 0 4px; font-family:'Shippori Mincho',serif; font-size:22px; letter-spacing:.04em; }
+    .map-card > p { margin:0; color:var(--muted); font-size:11px; line-height:1.7; }
+    .japan-map { position:relative; flex:1; min-height:315px; margin:5px -6px 0; }
+    .japan-map img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:.26; filter:sepia(.7) saturate(.75) hue-rotate(335deg); }
+    .map-pin { position:absolute; z-index:1; display:flex; align-items:center; gap:7px; color:var(--ink); font-size:10px; font-weight:900; white-space:nowrap; }
+    .map-pin::before { content:''; width:12px; height:12px; flex:none; border:3px solid #fff; border-radius:50%; background:var(--gold-deep); box-shadow:0 0 0 2px rgba(142,98,37,.26); }
+    .map-pin span { padding:5px 7px; border:1px solid rgba(231,222,208,.9); border-radius:8px; background:rgba(255,253,249,.92); box-shadow:0 5px 13px rgba(77,57,29,.07); }
+    .pin-tokyo { left:55%; top:46%; }
+    .pin-osaka { left:37%; top:60%; }
+    .map-legend { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:auto; padding-top:13px; border-top:1px solid rgba(183,133,58,.2); }
+    .map-legend span { display:flex; align-items:center; gap:6px; color:var(--muted); font-size:10px; line-height:1.45; }
+    .map-legend i { width:8px; height:8px; flex:none; border-radius:50%; background:var(--gold-deep); }
+    .map-credit { margin:10px 0 0; color:var(--muted); font-size:9px; line-height:1.45; }
+    .map-credit a { color:inherit; }
+    .area-cards { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+    .area-card { position:relative; display:flex; align-items:flex-end; min-height:220px; overflow:hidden; border-radius:19px; background:#d9cfbe; text-decoration:none; box-shadow:0 8px 20px rgba(77,57,29,.08); }
+    .area-card img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:transform .3s ease; }
+    .area-card:hover img { transform:scale(1.04); }
+    .area-card::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(48,42,36,.02) 32%,rgba(48,42,36,.76) 100%); }
+    .area-copy { position:relative; z-index:1; width:100%; padding:17px; color:#fff; }
+    .area-copy small { display:block; margin-bottom:5px; font-family:'DM Sans',sans-serif; font-size:10px; font-weight:700; letter-spacing:.11em; }
+    .area-copy b { display:block; font-family:'Shippori Mincho',serif; font-size:19px; line-height:1.35; letter-spacing:.04em; }
+    .area-copy span { display:block; margin-top:5px; font-size:10px; line-height:1.55; }
+    .area-home { background:#e8dbc9; }
+    .area-home img { object-position:center 38%; }
     .compare { background:linear-gradient(180deg,#fffdf9 0,#f9f4eb 100%); border-top:1px solid var(--line); }
     .filter-row { display:flex; flex-wrap:wrap; gap:8px; margin:20px 0 24px; }
     .filter { cursor:pointer; border:1px solid var(--line); border-radius:999px; background:var(--paper); color:var(--muted); padding:8px 13px; font-size:12px; font-weight:700; }
@@ -154,8 +182,8 @@
     .footer-links { display:flex; justify-content:center; flex-wrap:wrap; gap:8px 17px; }
     .footer a { color:var(--muted); font-size:11px; text-decoration:none; }
     .footer p { color:var(--muted); font-size:10px; line-height:1.8; margin:18px auto 0; max-width:880px; }
-    @media (max-width:850px) { .hero-grid,.decision-grid,.visual-compare { grid-template-columns:1fr; } .hero-visual { max-width:600px; } .guide-grid,.plans-grid { grid-template-columns:repeat(2,1fr); } .choice-grid { grid-template-columns:repeat(2,1fr); } }
-    @media (max-width:560px) { .header-inner,.container { width:min(100% - 28px,1120px); } .header-inner { min-height:56px; } .brand { font-size:16px; } .hero { padding:42px 0 40px; } h1 { font-size:29px; } .hero-lead { font-size:13px; } .hero-card { position:relative; left:auto; bottom:auto; margin:12px 10px 0; max-width:none; } section { padding:48px 0; } .section-top { display:block; } .mini-update { margin-top:8px; white-space:normal; } .guide-grid,.plans-grid,.faq-grid { grid-template-columns:1fr; } .choice { min-height:116px; } .choice-icon { margin-bottom:7px; } .plan { padding:20px; } .plan-photo { height:168px; margin:-20px -20px 16px; } .decision-box { padding:23px; } .decision-box p { font-size:19px; } .price-chart,.method-guide { padding:20px; } .bar-row { grid-template-columns:70px 1fr 52px; gap:7px; } }
+    @media (max-width:850px) { .hero-grid,.decision-grid,.visual-compare,.location-layout { grid-template-columns:1fr; } .hero-visual { max-width:600px; } .guide-grid,.plans-grid { grid-template-columns:repeat(2,1fr); } .choice-grid { grid-template-columns:repeat(2,1fr); } .map-card { min-height:430px; } }
+    @media (max-width:560px) { .header-inner,.container { width:min(100% - 28px,1120px); } .header-inner { min-height:56px; } .brand { font-size:16px; } .hero { padding:42px 0 40px; } h1 { font-size:29px; } .hero-lead { font-size:13px; } .hero-card { position:relative; left:auto; bottom:auto; margin:12px 10px 0; max-width:none; } section { padding:48px 0; } .section-top { display:block; } .mini-update { margin-top:8px; white-space:normal; } .guide-grid,.plans-grid,.faq-grid,.area-cards { grid-template-columns:1fr; } .choice { min-height:116px; } .choice-icon { margin-bottom:7px; } .map-card { min-height:416px; padding:20px; } .japan-map { min-height:280px; } .map-pin { font-size:9px; } .pin-tokyo { left:53%; } .pin-osaka { left:31%; } .area-card { min-height:190px; } .plan { padding:20px; } .plan-photo { height:168px; margin:-20px -20px 16px; } .decision-box { padding:23px; } .decision-box p { font-size:19px; } .price-chart,.method-guide { padding:20px; } .bar-row { grid-template-columns:70px 1fr 52px; gap:7px; } }
   </style>
 </head>
 <body>
@@ -180,9 +208,32 @@
       <div class="choice-grid" style="margin-top:23px;">
         <a class="choice" href="#compare" data-activate-filter="medical"><span class="choice-icon">✦</span><b>歯科医院で相談したい</b><small>医療ホワイトニングを検討する</small></a>
         <a class="choice" href="#compare" data-activate-filter="self"><span class="choice-icon">¥</span><b>まず低予算で始めたい</b><small>1回・初回の費用を比べる</small></a>
-        <a class="choice" href="#compare" data-activate-filter="city"><span class="choice-icon">⌂</span><b>通いやすさを重視したい</b><small>銀座・大阪・全国・自宅から探す</small></a>
+        <a class="choice" href="#locations"><span class="choice-icon">⌂</span><b>通いやすさを重視したい</b><small>銀座・大阪・全国・自宅から探す</small></a>
         <a class="choice" href="#compare" data-activate-filter="home"><span class="choice-icon">⌁</span><b>自宅中心で続けたい</b><small>ホーム・セルフ・通販を比べる</small></a>
       </div>
+    </div></section>
+
+    <section class="locations" id="locations"><div class="container">
+      <div class="section-top"><div><p class="eyebrow">WHERE TO GO</p><h2>写真とエリアから探す</h2></div><p class="mini-update">代表エリア・店舗展開を表示</p></div>
+      <div class="location-layout">
+        <figure class="map-card">
+          <p class="chart-kicker">JAPAN LOCATION MAP</p><h3>通える場所で選ぶ</h3><p>近くの院・店舗があるかを先に確認すると、続けやすさも比較できます。</p>
+          <div class="japan-map" role="img" aria-label="東京・銀座と大阪・梅田周辺の提携サービス代表エリアを示す日本地図">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/6/69/Blank_map_of_Japan_new.svg" width="512" height="512" loading="lazy" alt="" />
+            <span class="map-pin pin-tokyo"><span>東京・銀座</span></span>
+            <span class="map-pin pin-osaka"><span>大阪・梅田周辺</span></span>
+          </div>
+          <div class="map-legend"><span><i></i>東京・銀座：ホワイトマイスター</span><span><i></i>大阪：YC／パール／HAKU</span></div>
+          <figcaption class="map-credit">地図：<a href="https://commons.wikimedia.org/wiki/File:Blank_map_of_Japan_new.svg" target="_blank" rel="noopener">Lincun / Erida539 / YasutoTakenaka（CC BY-SA 3.0）</a></figcaption>
+        </figure>
+        <div class="area-cards" aria-label="エリア別の提携サービス">
+          <a class="area-card" href="/clinic/white-meister.html"><img src="/img/white-meister-clinic.jpg" loading="lazy" alt="ホワイトマイスター東京銀座院の院内" /><span class="area-copy"><small>TOKYO · GINZA</small><b>東京・銀座</b><span>ホワイトマイスター</span></span></a>
+          <a class="area-card" href="/clinic/yc-whitening.html"><img src="/img/clinic-official/yc-hero.jpg" loading="lazy" alt="YCホワイトニングの公式掲載イメージ" /><span class="area-copy"><small>OSAKA · UMEDA</small><b>大阪・梅田周辺</b><span>YC／パール／HAKU（大阪梅田店）</span></span></a>
+          <a class="area-card" href="/clinic/star-whitening.html"><img src="/img/clinic-official/star-detail.jpg" loading="lazy" alt="スターホワイトニング公式掲載の院内イメージ" /><span class="area-copy"><small>MAJOR CITIES</small><b>都市部を中心に</b><span>スター：首都圏・名古屋・大阪・神戸・福岡</span></span></a>
+          <a class="area-card area-home" href="/clinic/whitening-cafe.html"><img src="/img/clinic-official/cafe-salon.webp" loading="lazy" alt="ホワイトニングカフェの公式掲載イメージ" /><span class="area-copy"><small>NATIONWIDE · HOME</small><b>全国・自宅から</b><span>ホワイトニングカフェ／ルルホワイト</span></span></a>
+        </div>
+      </div>
+      <p class="table-note">※地図上のピンは代表エリアです。全国展開サービスは、公式サイトで最寄りの店舗・利用条件をご確認ください。</p>
     </div></section>
 
     <section class="compare" id="compare"><div class="container">
