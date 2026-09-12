@@ -32,17 +32,6 @@
       y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
     })(window,document,'clarity','script','xkyf1au7bm');
   </script>
-  <script type="application/ld+json">
-  {
-    "@context":"https://schema.org",
-    "@type":"FAQPage",
-    "mainEntity":[
-      {"@type":"Question","name":"ホワイトニングは何回分の料金で比較するべきですか？","acceptedAnswer":{"@type":"Answer","text":"初回料金ではなく、目標の白さまでに想定する回数、初診料・追加薬剤・クリーニングなどを含めた総額で比較しましょう。必要な回数には個人差があります。"}},
-      {"@type":"Question","name":"保険は使えますか？","acceptedAnswer":{"@type":"Answer","text":"見た目を白くすることを目的としたホワイトニングは、原則として自由診療で公的医療保険の対象外です。"}},
-      {"@type":"Question","name":"セルフホワイトニングと歯科医院の違いは何ですか？","acceptedAnswer":{"@type":"Answer","text":"歯科医院の医療ホワイトニングは歯科医師・歯科衛生士の管理のもとで行います。セルフサービスや自宅ケアは、表面の着色汚れをケアして本来の歯の色を目指すものが中心です。サービスごとの説明と利用条件を確認してください。"}}
-    ]
-  }
-  </script>
   <style>
     :root { --bg:#fbf8f2; --paper:#fffdf9; --ink:#302a24; --muted:#736c62; --line:#e7ded0; --gold:#b7853a; --gold-deep:#8e6225; --blush:#f5e5d9; --soft:#f7efe2; --green:#406d5a; --shadow:0 18px 42px rgba(77,57,29,.09); }
     * { box-sizing:border-box; }
@@ -129,6 +118,9 @@
     .plans-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
     .plan { display:flex; flex-direction:column; padding:23px; background:var(--paper); border:1px solid var(--line); border-radius:20px; box-shadow:0 8px 23px rgba(77,57,29,.045); }
     .plan[data-hidden="true"] { display:none; }
+    .plan-photo { position:relative; overflow:hidden; height:142px; margin:-23px -23px 18px; border-radius:19px 19px 0 0; background:var(--soft); }
+    .plan-photo img { width:100%; height:100%; display:block; object-fit:cover; object-position:center; }
+    .plan-photo figcaption { position:absolute; right:9px; bottom:8px; margin:0; padding:3px 6px; border-radius:4px; background:rgba(255,253,249,.86); color:var(--muted); font-size:9px; line-height:1.3; }
     .plan-top { display:flex; align-items:start; justify-content:space-between; gap:10px; }
     .plan h3 { font-family:'Shippori Mincho',serif; font-size:20px; margin:0; letter-spacing:.03em; }
     .pr { display:inline-block; flex:none; color:var(--muted); border:1px solid var(--line); border-radius:5px; padding:2px 5px; font-size:9px; letter-spacing:.08em; }
@@ -163,7 +155,7 @@
     .footer a { color:var(--muted); font-size:11px; text-decoration:none; }
     .footer p { color:var(--muted); font-size:10px; line-height:1.8; margin:18px auto 0; max-width:880px; }
     @media (max-width:850px) { .hero-grid,.decision-grid,.visual-compare { grid-template-columns:1fr; } .hero-visual { max-width:600px; } .guide-grid,.plans-grid { grid-template-columns:repeat(2,1fr); } .choice-grid { grid-template-columns:repeat(2,1fr); } }
-    @media (max-width:560px) { .header-inner,.container { width:min(100% - 28px,1120px); } .header-inner { min-height:56px; } .brand { font-size:16px; } .hero { padding:42px 0 40px; } h1 { font-size:29px; } .hero-lead { font-size:13px; } .hero-card { position:relative; left:auto; bottom:auto; margin:12px 10px 0; max-width:none; } section { padding:48px 0; } .section-top { display:block; } .mini-update { margin-top:8px; white-space:normal; } .guide-grid,.plans-grid,.faq-grid { grid-template-columns:1fr; } .choice { min-height:116px; } .choice-icon { margin-bottom:7px; } .plan { padding:20px; } .decision-box { padding:23px; } .decision-box p { font-size:19px; } .price-chart,.method-guide { padding:20px; } .bar-row { grid-template-columns:70px 1fr 52px; gap:7px; } }
+    @media (max-width:560px) { .header-inner,.container { width:min(100% - 28px,1120px); } .header-inner { min-height:56px; } .brand { font-size:16px; } .hero { padding:42px 0 40px; } h1 { font-size:29px; } .hero-lead { font-size:13px; } .hero-card { position:relative; left:auto; bottom:auto; margin:12px 10px 0; max-width:none; } section { padding:48px 0; } .section-top { display:block; } .mini-update { margin-top:8px; white-space:normal; } .guide-grid,.plans-grid,.faq-grid { grid-template-columns:1fr; } .choice { min-height:116px; } .choice-icon { margin-bottom:7px; } .plan { padding:20px; } .plan-photo { height:168px; margin:-20px -20px 16px; } .decision-box { padding:23px; } .decision-box p { font-size:19px; } .price-chart,.method-guide { padding:20px; } .bar-row { grid-template-columns:70px 1fr 52px; gap:7px; } }
   </style>
 </head>
 <body>
@@ -175,25 +167,16 @@
         <div>
           <p class="eyebrow">WHITENING PRICE GUIDE 2026</p>
           <h1>価格だけでなく、<br>「納得」で選べる<br>ホワイトニング比較。</h1>
-          <p class="hero-lead">提携する7つの医院・サービスについて、公式サイトの料金を確認しました。1回の費用、月額・コース、受けられる場所、予約前に確認したい条件まで。自分にとって無理のない選択肢を見つけるための比較ページです。</p>
+          <p class="hero-lead">提携する7サービスの料金を、初回・月額・コースで比較。あなたの予算と通い方に合う選択肢を探せます。</p>
           <div class="hero-meta"><span>料金最終確認 2026.09.11</span><span>掲載先 7サービス</span><span>自由診療・PRを含みます</span></div>
           <a class="button" href="#compare">7サービスを一覧で比べる <span aria-hidden="true">↓</span></a>
         </div>
-        <figure class="hero-visual"><img src="/img/price-hero.jpg" width="1200" height="612" fetchpriority="high" decoding="async" alt="ホワイトニングの料金と選び方を比較するイメージ" /><figcaption class="hero-card"><b>最初に見るのは「1回の価格」だけではありません。</b><span>目標までの回数、追加費用、通いやすさまで一緒に確認しましょう。</span></figcaption></figure>
+        <figure class="hero-visual"><img src="/img/price-hero.jpg" width="1200" height="612" fetchpriority="high" decoding="async" alt="ホワイトニングの料金と選び方を比較するイメージ" /><figcaption class="hero-card"><b>初回価格だけで、決めない。</b><span>回数・総額・通いやすさを比較。</span></figcaption></figure>
       </div>
     </section>
 
-    <section class="guide"><div class="container">
-      <div class="section-top"><div><p class="eyebrow">START HERE</p><h2>比較するときの、3つのものさし</h2></div></div>
-      <div class="guide-grid">
-        <article class="guide-card"><span class="guide-no">01 / GOAL</span><h3>どこまで白くしたい？</h3><p>歯本来の色を目指すのか、医療機関で歯の明るさを目指すのか。まず方式を分けると迷いにくくなります。</p></article>
-        <article class="guide-card"><span class="guide-no">02 / TOTAL</span><h3>総額はいくらになりそう？</h3><p>必要回数 × 料金に、初診料・薬剤・コース条件などを加えて考えるのが安心です。</p></article>
-        <article class="guide-card"><span class="guide-no">03 / ROUTINE</span><h3>続けられる通い方？</h3><p>駅、診療時間、自宅ケア、解約・返金の条件も、満足度を左右する大切な比較項目です。</p></article>
-      </div>
-    </div></section>
-
     <section><div class="container">
-      <p class="eyebrow">FIND YOUR START</p><h2 class="section-heading">あなたが最初に重視したいのは？</h2><p class="section-intro">下の比較表では、料金だけでなく「目的の違い」がひと目で分かるようにしています。</p>
+      <p class="eyebrow">FIND YOUR START</p><h2 class="section-heading">どこから選ぶ？</h2>
       <div class="choice-grid" style="margin-top:23px;">
         <a class="choice" href="#compare" data-activate-filter="medical"><span class="choice-icon">✦</span><b>歯科医院で相談したい</b><small>医療ホワイトニングを検討する</small></a>
         <a class="choice" href="#compare" data-activate-filter="self"><span class="choice-icon">¥</span><b>まず低予算で始めたい</b><small>1回・初回の費用を比べる</small></a>
@@ -203,7 +186,7 @@
     </div></section>
 
     <section class="compare" id="compare"><div class="container">
-      <div class="section-top"><div><p class="eyebrow">OFFICIAL PRICE CHECK</p><h2>7サービスの料金を、同じ基準で比較</h2><p class="section-intro">キャンペーン価格ではなく、公式サイトに掲載された主な通常・初回プランを中心に整理しています。料金・条件は変更されるため、申込み前に公式サイトで最終確認してください。</p></div><p class="mini-update">確認日：2026年9月11日</p></div>
+      <div class="section-top"><div><p class="eyebrow">OFFICIAL PRICE CHECK</p><h2>7サービスを比較</h2></div><p class="mini-update">料金確認：2026.09.11</p></div>
       <div class="filter-row" role="group" aria-label="表示する方式を絞り込む">
         <button class="filter" type="button" data-filter="all" aria-pressed="true">すべて表示</button>
         <button class="filter" type="button" data-filter="medical" aria-pressed="false" id="medical">医療ホワイトニング</button>
@@ -213,7 +196,7 @@
       </div>
       <div class="visual-compare">
         <figure class="price-chart" role="img" aria-label="提携7サービスの開始費用を示す横棒グラフ。HAKUは初回無料体験、スターホワイトニングは2750円、YCホワイトニングは2970円、ルルホワイトは3980円、ホワイトニングカフェは4980円、パールホワイトニングは19800円、ホワイトマイスターは28000円。">
-          <p class="chart-kicker">STARTING PRICE</p><h3 class="chart-title">始めるときの費用を、ひと目で</h3><p class="chart-sub">初回・都度1回・最初の購入のいずれかを表示。方式や内容は同じではありません。</p>
+          <p class="chart-kicker">STARTING PRICE</p><h3 class="chart-title">始めるときの費用</h3><p class="chart-sub">初回・都度1回・最初の購入を表示。</p>
           <div class="bar-list">
             <div class="bar-row"><span class="bar-label">HAKU</span><span class="bar-track"><span class="bar-fill" style="width:1%"></span></span><span class="bar-value">体験 ¥0</span></div>
             <div class="bar-row"><span class="bar-label">スター</span><span class="bar-track"><span class="bar-fill" style="width:10%"></span></span><span class="bar-value">¥2,750</span></div>
@@ -225,7 +208,7 @@
           </div>
           <figcaption class="chart-foot">※HAKUは大阪梅田店の月額¥11,000プランとは別に、初回無料体験を公式案内。表示価格はすべて税込です。</figcaption>
         </figure>
-        <aside class="method-guide"><p class="chart-kicker">CHOOSE BY PURPOSE</p><h3 class="chart-title">まずは、方式を選ぶ</h3><p class="chart-sub">費用の数字より先に、希望するケアを絞ると選びやすくなります。</p>
+        <aside class="method-guide"><p class="chart-kicker">CHOOSE BY PURPOSE</p><h3 class="chart-title">方式から選ぶ</h3>
           <div class="method-steps">
             <div class="method-step"><span class="method-icon">CL</span><div><b>歯科医院で相談したい</b><span>スターホワイトニング、YC、ホワイトマイスター、パール</span></div></div>
             <div class="method-step"><span class="method-icon">SL</span><div><b>着色ケアを気軽に始めたい</b><span>ホワイトニングカフェ</span></div></div>
@@ -234,26 +217,24 @@
           <figure class="method-image"><img src="/img/shade-guide.jpg" width="1000" height="194" loading="lazy" alt="歯の色の目安を示すシェードガイド" /></figure>
         </aside>
       </div>
-      <p class="table-note">※ホワイトニングは原則として自由診療です。ルルホワイトは医薬部外品の自宅ケア商品で、歯科医院の漂白とは仕組みが異なります。料金・コース・利用条件は下のサービスカードと各公式サイトで確認してください。</p>
+      <p class="table-note">※方式・内容は同一ではありません。料金・条件は公式サイトで確認してください。</p>
 
-      <div class="plans"><div class="section-top"><div><p class="eyebrow">COMPARE IN DETAIL</p><h2>「自分に合う理由」から、もう一段深く</h2></div></div>
+      <div class="plans"><div class="section-top"><div><p class="eyebrow">SERVICES</p><h2>サービスを選ぶ</h2></div></div>
         <div class="plans-grid" id="plan-grid">
-          <article class="plan" data-kind="medical city"><div class="plan-top"><h3>スターホワイトニング</h3><span class="pr">PR</span></div><p class="plan-type">低予算から始める医療オフィス</p><div class="main-price"><small>1回照射・上下16〜20本</small><strong>¥2,750</strong></div><ul class="plan-list"><li>照射回数で料金が明確</li><li>都市部の駅近院から選びやすい</li><li>診察料・検査料の追加はなしと公式案内</li></ul><div class="plan-actions"><a class="more" href="/clinic/star-whitening.html">比較を詳しく</a><a class="official" data-affiliate-cta data-clinic="スターホワイトニング" data-placement="price_card" href="https://px.a8.net/svt/ejp?a8mat=4B7WD2+DEUMP6+4466+5ZEMQ" target="_blank" rel="nofollow sponsored noopener">公式で予約枠を見る</a></div></article>
-          <article class="plan" data-kind="medical city"><div class="plan-top"><h3>YCホワイトニング</h3><span class="pr">PR</span></div><p class="plan-type">大阪で照射プランを選びたい人へ</p><div class="main-price"><small>BASIC・8分照射1回</small><strong>¥2,970</strong></div><ul class="plan-list"><li>梅田・心斎橋で通院を検討</li><li>ラグジュアリー／月額制も用意</li><li>目標に合わせて照射時間を相談</li></ul><div class="plan-actions"><a class="more" href="/clinic/yc-whitening.html">比較を詳しく</a><a class="official" data-affiliate-cta data-clinic="YCホワイトニング" data-placement="price_card" href="https://t.afi-b.com/visit.php?a=d13632t-T466954h&p=i987887d" target="_blank" rel="nofollow sponsored noopener">公式で料金を見る</a></div></article>
-          <article class="plan" data-kind="medical city"><div class="plan-top"><h3>ホワイトマイスター</h3><span class="pr">PR</span></div><p class="plan-type">銀座で1回の変化とホームケアを両立</p><div class="main-price"><small>デュアルホワイトニング・初回</small><strong>¥31,000</strong></div><ul class="plan-list"><li>オフィス＋選べるホームケア</li><li>通院1回で完結する公式案内</li><li>完全個室で受けたい人に</li></ul><div class="plan-actions"><a class="more" href="/clinic/white-meister.html">比較を詳しく</a><a class="official" data-affiliate-cta data-clinic="ホワイトマイスター" data-placement="price_card" href="https://px.a8.net/svt/ejp?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE" target="_blank" rel="nofollow sponsored noopener">公式で空きを見る</a></div></article>
-          <article class="plan" data-kind="medical city"><div class="plan-top"><h3>パールホワイトニング</h3><span class="pr">PR</span></div><p class="plan-type">大阪で個室・ホーム併用も選べる</p><div class="main-price"><small>オフィスホワイトニング・初回</small><strong>¥19,800</strong></div><ul class="plan-list"><li>ホーム、1・3か月コースも比較可</li><li>完全個室・女性歯科医師の案内</li><li>式・撮影など期限がある場合は相談を</li></ul><div class="plan-actions"><a class="more" href="/clinic/pearl-whitening.html">比較を詳しく</a><a class="official" data-affiliate-cta data-clinic="パールホワイトニング" data-placement="price_card" href="https://t.afi-b.com/visit.php?a=q14008U-e494244m&p=i987887d" target="_blank" rel="nofollow sponsored noopener">公式で予約・料金を見る</a></div></article>
-          <article class="plan" data-kind="medical home"><div class="plan-top"><h3>メディカルホワイトニングHAKU</h3><span class="pr">PR</span></div><p class="plan-type">自分の時間で通う、診療＋セルフ照射</p><div class="main-price"><small>大阪梅田店・通い放題プラン例</small><strong>月額 ¥11,000</strong></div><ul class="plan-list"><li>初回は無料体験の公式案内</li><li>全国100店舗、無人・予約制の店舗あり</li><li>料金・解約条件は店舗ページで確認</li></ul><div class="plan-actions"><a class="more" href="/clinic/haku-whitening.html">比較を詳しく</a><a class="official" data-affiliate-cta data-clinic="メディカルホワイトニングHAKU" data-placement="price_card" href="https://t.afi-b.com/visit.php?a=z15273H-X498478n&p=i987887d" target="_blank" rel="nofollow sponsored noopener">公式で店舗を探す</a></div></article>
-          <article class="plan" data-kind="self city"><div class="plan-top"><h3>ホワイトニングカフェ</h3><span class="pr">PR</span></div><p class="plan-type">着色ケアを低予算・短時間で始める</p><div class="main-price"><small>都度払い・1回</small><strong>¥4,980</strong></div><ul class="plan-list"><li>見える範囲の歯を一律料金でケア</li><li>4・8・12回コースで単価を抑えられる</li><li>セルフ方式で、本来の歯の色を目指す</li></ul><div class="plan-actions"><a class="more" href="/clinic/whitening-cafe.html">比較を詳しく</a><a class="official" data-affiliate-cta data-clinic="ホワイトニングカフェ" data-placement="price_card" href="https://px.a8.net/svt/ejp?a8mat=4B7WD2+DE973E+5DVG+5YJRM" target="_blank" rel="nofollow sponsored noopener">公式で近くを探す</a></div></article>
-          <article class="plan" data-kind="self home"><div class="plan-top"><h3>ルルシア ルルホワイト</h3><span class="pr">PR</span></div><p class="plan-type">通わず、毎日の着色ケアを続ける</p><div class="main-price"><small>定期コース初回・送料無料</small><strong>¥3,980</strong></div><ul class="plan-list"><li>2回目以降は30日ごとに¥8,980</li><li>1本約1か月分の医薬部外品ジェル</li><li>定期条件・返金保証の対象を確認</li></ul><div class="plan-actions"><a class="more" href="/clinic/lulu-white.html">比較を詳しく</a><a class="official" data-affiliate-cta data-clinic="ルルシア ルルホワイト" data-placement="price_card" href="https://t.afi-b.com/visit.php?a=g12737B-I424874L&p=i987887d" target="_blank" rel="nofollow sponsored noopener">公式で条件を見る</a></div></article>
+          <article class="plan" data-kind="medical city"><figure class="plan-photo"><img src="/img/clinic-official/star-detail.jpg" loading="lazy" alt="スターホワイトニング公式掲載の院内イメージ" /><figcaption>画像提供：公式サイト</figcaption></figure><div class="plan-top"><h3>スターホワイトニング</h3><span class="pr">PR</span></div><p class="plan-type">低予算から始める医療オフィス</p><div class="main-price"><small>1回照射・上下16〜20本</small><strong>¥2,750</strong></div><ul class="plan-list"><li>照射回数で料金が明確</li><li>都市部の駅近院</li></ul><div class="plan-actions"><a class="more" href="/clinic/star-whitening.html">比較を詳しく</a><a class="official" data-affiliate-cta data-clinic="スターホワイトニング" data-placement="price_card" href="https://px.a8.net/svt/ejp?a8mat=4B7WD2+DEUMP6+4466+5ZEMQ" target="_blank" rel="nofollow sponsored noopener">公式で予約枠を見る</a></div></article>
+          <article class="plan" data-kind="medical city"><figure class="plan-photo"><img src="/img/clinic-official/yc-hero.jpg" loading="lazy" alt="YCホワイトニング公式掲載の院内イメージ" /><figcaption>画像提供：公式サイト</figcaption></figure><div class="plan-top"><h3>YCホワイトニング</h3><span class="pr">PR</span></div><p class="plan-type">大阪で照射プランを選びたい人へ</p><div class="main-price"><small>BASIC・8分照射1回</small><strong>¥2,970</strong></div><ul class="plan-list"><li>梅田・心斎橋</li><li>月額制・回数券あり</li></ul><div class="plan-actions"><a class="more" href="/clinic/yc-whitening.html">比較を詳しく</a><a class="official" data-affiliate-cta data-clinic="YCホワイトニング" data-placement="price_card" href="https://t.afi-b.com/visit.php?a=d13632t-T466954h&p=i987887d" target="_blank" rel="nofollow sponsored noopener">公式で料金を見る</a></div></article>
+          <article class="plan" data-kind="medical city"><figure class="plan-photo"><img src="/img/white-meister-clinic.jpg" loading="lazy" alt="ホワイトマイスター東京銀座院の院内" /><figcaption>画像提供：ホワイトマイスター</figcaption></figure><div class="plan-top"><h3>ホワイトマイスター</h3><span class="pr">PR</span></div><p class="plan-type">銀座で1回の変化とホームケアを両立</p><div class="main-price"><small>デュアルホワイトニング・初回</small><strong>¥31,000</strong></div><ul class="plan-list"><li>オフィス＋ホームケア</li><li>銀座・完全個室</li></ul><div class="plan-actions"><a class="more" href="/clinic/white-meister.html">比較を詳しく</a><a class="official" data-affiliate-cta data-clinic="ホワイトマイスター" data-placement="price_card" href="https://px.a8.net/svt/ejp?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE" target="_blank" rel="nofollow sponsored noopener">公式で空きを見る</a></div></article>
+          <article class="plan" data-kind="medical city"><figure class="plan-photo"><img src="/img/clinic-official/pearl-interior.jpg" loading="lazy" alt="パールホワイトニング公式掲載の院内" /><figcaption>画像提供：公式サイト</figcaption></figure><div class="plan-top"><h3>パールホワイトニング</h3><span class="pr">PR</span></div><p class="plan-type">大阪で個室・ホーム併用も選べる</p><div class="main-price"><small>オフィスホワイトニング・初回</small><strong>¥19,800</strong></div><ul class="plan-list"><li>ホーム・コースも用意</li><li>梅田／肥後橋・完全個室</li></ul><div class="plan-actions"><a class="more" href="/clinic/pearl-whitening.html">比較を詳しく</a><a class="official" data-affiliate-cta data-clinic="パールホワイトニング" data-placement="price_card" href="https://t.afi-b.com/visit.php?a=q14008U-e494244m&p=i987887d" target="_blank" rel="nofollow sponsored noopener">公式で予約・料金を見る</a></div></article>
+          <article class="plan" data-kind="medical home"><figure class="plan-photo"><img src="/img/clinic-official/haku-detail.jpg" loading="lazy" alt="メディカルホワイトニングHAKU公式掲載のサロンイメージ" /><figcaption>画像提供：公式サイト</figcaption></figure><div class="plan-top"><h3>メディカルホワイトニングHAKU</h3><span class="pr">PR</span></div><p class="plan-type">自分の時間で通う、診療＋セルフ照射</p><div class="main-price"><small>大阪梅田店・通い放題プラン例</small><strong>月額 ¥11,000</strong></div><ul class="plan-list"><li>初回無料体験</li><li>全国100店舗の公式案内</li></ul><div class="plan-actions"><a class="more" href="/clinic/haku-whitening.html">比較を詳しく</a><a class="official" data-affiliate-cta data-clinic="メディカルホワイトニングHAKU" data-placement="price_card" href="https://t.afi-b.com/visit.php?a=z15273H-X498478n&p=i987887d" target="_blank" rel="nofollow sponsored noopener">公式で店舗を探す</a></div></article>
+          <article class="plan" data-kind="self city"><figure class="plan-photo"><img src="/img/clinic-official/cafe-salon.webp" loading="lazy" alt="ホワイトニングカフェ公式掲載のサロンイメージ" /><figcaption>画像提供：公式サイト</figcaption></figure><div class="plan-top"><h3>ホワイトニングカフェ</h3><span class="pr">PR</span></div><p class="plan-type">着色ケアを低予算・短時間で始める</p><div class="main-price"><small>都度払い・1回</small><strong>¥4,980</strong></div><ul class="plan-list"><li>4・8・12回コース</li><li>全国70店舗の公式案内</li></ul><div class="plan-actions"><a class="more" href="/clinic/whitening-cafe.html">比較を詳しく</a><a class="official" data-affiliate-cta data-clinic="ホワイトニングカフェ" data-placement="price_card" href="https://px.a8.net/svt/ejp?a8mat=4B7WD2+DE973E+5DVG+5YJRM" target="_blank" rel="nofollow sponsored noopener">公式で近くを探す</a></div></article>
+          <article class="plan" data-kind="self home"><figure class="plan-photo"><img src="/img/clinic-official/lulu-detail.webp" loading="lazy" alt="ルルシア ルルホワイト公式掲載のイメージ" /><figcaption>画像提供：公式サイト</figcaption></figure><div class="plan-top"><h3>ルルシア ルルホワイト</h3><span class="pr">PR</span></div><p class="plan-type">通わず、毎日の着色ケアを続ける</p><div class="main-price"><small>定期コース初回・送料無料</small><strong>¥3,980</strong></div><ul class="plan-list"><li>2回目以降 ¥8,980</li><li>1本約1か月分</li></ul><div class="plan-actions"><a class="more" href="/clinic/lulu-white.html">比較を詳しく</a><a class="official" data-affiliate-cta data-clinic="ルルシア ルルホワイト" data-placement="price_card" href="https://t.afi-b.com/visit.php?a=g12737B-I424874L&p=i987887d" target="_blank" rel="nofollow sponsored noopener">公式で条件を見る</a></div></article>
         </div>
       </div>
     </div></section>
 
-    <section class="decision"><div class="container decision-grid"><div><p class="eyebrow" style="color:#f2d49f;">BEFORE YOU BOOK</p><h2 class="section-heading">予約前の3分で、<br>確認しておきたい4項目</h2><ol class="checklist"><li><b>「白さ」と期限</b> — いつまでに、どの程度の明るさを目指したいか。</li><li><b>料金に含まれるもの</b> — 初診料、照射回数、マウスピース、薬剤、クリーニングの有無。</li><li><b>歯の状態</b> — 知覚過敏、虫歯、治療中の歯、人工歯がある場合の対応。</li><li><b>継続・変更の条件</b> — 回数券の期限、月額制の最低期間、休止・解約・返金のルール。</li></ol></div><aside class="decision-box"><p>「どれくらい白くなる？」を、先に自分の写真で確認。</p><small>方式・回数・今の歯の色を選ぶと、仕上がりの目安をシミュレーションできます。無料・登録不要です。</small><a class="button" href="/?utm_source=price_page&utm_medium=internal&utm_campaign=decision_cta" onclick="gtag('event','to_simulator',{source_page:'price',placement:'decision_cta'})">無料でシミュレーションする</a></aside></div></section>
-
-    <section><div class="container"><p class="eyebrow">FAQ</p><h2 class="section-heading">料金比較でよくある質問</h2><div class="faq-grid" style="margin-top:22px;"><article class="faq"><h3>一番安いサービスを選べばいい？</h3><p>1回の価格だけでは判断できません。目標までに必要な回数、追加費用、通いやすさを含めた総額で比べると、後悔を減らせます。</p></article><article class="faq"><h3>オフィスとセルフ、どちらが合う？</h3><p>歯科医院で相談しながら歯の明るさを目指したいなら医療ホワイトニング、まず着色ケアを低予算で始めたいならセルフ・自宅ケアが選択肢になります。</p></article><article class="faq"><h3>保険や医療費控除は使える？</h3><p>見た目を白くする目的のホワイトニングは原則自由診療で、公的医療保険の対象外です。個別の事情は医院・税理士等へご確認ください。</p></article><article class="faq"><h3>人工歯も白くなる？</h3><p>差し歯・被せ物・詰め物などは天然歯と同じようには変化しない場合があります。事前に歯科医師へ相談しましょう。</p></article></div></div></section>
+    <section class="decision"><div class="container decision-grid"><div><p class="eyebrow" style="color:#f2d49f;">SIMULATOR</p><h2 class="section-heading">白さの目安を、写真で確認。</h2></div><aside class="decision-box"><p>無料・登録不要</p><a class="button" href="/?utm_source=price_page&utm_medium=internal&utm_campaign=decision_cta" onclick="gtag('event','to_simulator',{source_page:'price',placement:'decision_cta'})">無料でシミュレーションする</a></aside></div></section>
   </main>
-  <footer class="footer"><div class="container"><nav class="footer-links"><a href="/">シミュレーター</a><a href="https://column.hamulation.com/">コラム</a><a href="/privacy.html">プライバシーポリシー</a><a href="/terms.html">免責事項</a><a href="/about.html">運営者情報</a></nav><p>※本ページはアフィリエイト広告を利用しています。掲載の料金・キャンペーン・診療時間・利用条件は変更される場合があります。必ず各公式サイト・予約画面で最新情報をご確認ください。※ホワイトニングの効果には個人差があり、効果を保証するものではありません。妊娠中・授乳中、治療中、知覚過敏、人工歯などがある方は、申込み前に医療機関または各サービスの相談窓口へご確認ください。</p><p>&copy; 2026 ハミュレーション</p></div></footer>
+  <footer class="footer"><div class="container"><nav class="footer-links"><a href="/">シミュレーター</a><a href="https://column.hamulation.com/">コラム</a><a href="/privacy.html">プライバシーポリシー</a><a href="/terms.html">免責事項</a><a href="/about.html">運営者情報</a></nav><p>※本ページはアフィリエイト広告を利用しています。料金・条件は変更される場合があります。申込み前に各公式サイトでご確認ください。</p><p>&copy; 2026 ハミュレーション</p></div></footer>
   <script>
     (() => {
       const filters = document.querySelectorAll('.filter');
