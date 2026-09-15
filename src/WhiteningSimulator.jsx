@@ -791,7 +791,7 @@ export default function WhiteningSimulator() {
         setEditMode("area");
         setMouth({ cx: 0.5, cy: 0.62, r: 0.16 });
         setImgSrc(reader.result);
-        track("sim_photo_loaded", { source: "upload" });
+        track("sim_photo_loaded", { input_method: "upload" });
         autoDetectMouth(img);
       };
       img.onerror = () =>
@@ -803,7 +803,7 @@ export default function WhiteningSimulator() {
 
   const onFile = (e) => {
     const f = e.target.files && e.target.files[0];
-    if (f) track("sim_photo_selected", { source: "upload" });
+    if (f) track("sim_photo_selected", { input_method: "upload" });
     loadFile(f);
     e.target.value = ""; // 同じファイルの再選択を許可
   };
@@ -855,8 +855,8 @@ export default function WhiteningSimulator() {
       setMouth({ cx: 0.5, cy: 0.62, r: 0.16 });
       setImgSrc(url);
       stopCamera();
-      track("sim_photo_selected", { source: "camera" });
-      track("sim_photo_loaded", { source: "camera" });
+      track("sim_photo_selected", { input_method: "camera" });
+      track("sim_photo_loaded", { input_method: "camera" });
       autoDetectMouth(img);
     };
     img.src = url;
