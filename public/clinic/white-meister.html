@@ -20,11 +20,28 @@
       y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
     })(window, document, "clarity", "script", "xkyf1au7bm");
   </script>
+  <script>
+    function trackWhiteMeisterAffiliate(offerPlacement, legacyPlacement) {
+      var payload = {
+        clinic: "ホワイトマイスター",
+        source_page: "clinic_detail",
+        placement: legacyPlacement,
+        offer_id: "white-meister",
+        offer_placement: offerPlacement,
+        recommendation_rule: "default",
+        variant: "v13_wm_ginza",
+        timing: "not_applicable",
+        area_group: "ginza"
+      };
+      if (typeof window.gtag === "function") window.gtag("event", "affiliate_click", payload);
+      if (typeof window.clarity === "function") window.clarity("event", "affiliate_click");
+    }
+  </script>
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#FAF7F1" />
-  <title>ホワイトマイスター東京銀座院の特徴・デュアルホワイトニング | ハミュレーション</title>
-  <meta name="description" content="東京・銀座駅徒歩1分のホワイトニング専門歯科「ホワイトマイスター」の特徴を整理。完全個室・マッサージチェア付きの院内、通院1回で完結するデュアルホワイトニング(初回31,000円税込)、認定医が在籍する体制まで紹介します。" />
+  <title>ホワイトマイスター東京銀座院の料金・予約前の確認ポイント | ハミュレーション</title>
+  <meta name="description" content="ホワイトマイスター東京銀座院の初回デュアルホワイトニング料金、アクセス、向いている人、予約前に確認したい点を公式情報をもとに整理。比較ページと無料シミュレーターも案内します。" />
   <link rel="canonical" href="https://www.hamulation.com/clinic/white-meister.html" />
   <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
@@ -41,6 +58,8 @@
     .wrap { max-width: 760px; margin: 0 auto; padding: 24px 20px 60px; }
     a.back { color: var(--gold-dark); font-size: 13px; font-weight: 700; text-decoration: none; }
     .pr { display: inline-block; font-size: 9.5px; font-weight: 900; letter-spacing: 1.5px; color: var(--sub); border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; vertical-align: middle; margin-left: 8px; }
+    .ad-disclosure { display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px 10px; margin: 12px 0 16px; padding: 9px 11px; border: 1px solid #dfd3c5; border-radius: 10px; background: #fffaf3; color: #554c43; font-size: 12px; font-weight: 700; line-height: 1.65; }
+    .ad-disclosure a { color: var(--gold-dark); font-weight: 900; text-decoration: underline; text-underline-offset: 2px; }
     h1 { font-family: 'Shippori Mincho',serif; font-size: 24px; font-weight: 600; letter-spacing: 1px; margin: 16px 0 4px; }
     .tagline { font-size: 13px; color: var(--sub); margin: 0 0 18px; }
     h2 { font-family: 'Shippori Mincho',serif; font-size: 18px; font-weight: 600; letter-spacing: 1px; margin: 28px 0 10px; }
@@ -59,7 +78,15 @@
     td.vs { color: var(--sub); width: 40%; }
     .cta { display: block; text-align: center; background: linear-gradient(135deg, var(--gold), var(--gold-dark)); color: #fff; font-weight: 900; font-size: 15px; border-radius: 999px; padding: 16px 24px; text-decoration: none; box-shadow: 0 8px 24px rgba(192,145,60,0.35); margin: 8px 0 6px; }
     .cta-sub { text-align: center; font-size: 11px; color: var(--sub); }
+    .hero-reservation { margin: 0 0 18px; padding: 14px; border: 1px solid var(--gold-light); border-radius: 16px; background: var(--champagne); }
+    .hero-reservation .cta { margin: 0; }
+    .hero-reservation .cta-sub { margin: 8px 0 0; }
     .note { font-size: 10.5px; color: var(--sub); line-height: 1.8; margin-top: 22px; }
+    .information-source { display: flex; flex-wrap: wrap; gap: 5px 14px; margin: 12px 0 0; color: var(--sub); font-size: 11px; line-height: 1.7; }
+    .information-source strong { color: var(--ink); }
+    .page-links { display: flex; flex-wrap: wrap; gap: 9px 15px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+    .page-links a { color: var(--gold-dark); font-size: 12px; font-weight: 700; text-decoration: none; }
+    .page-links a:hover, .page-links a:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
     .simlink { display: inline-block; margin-top: 4px; color: var(--gold-dark); font-weight: 700; font-size: 12.5px; }
     .fig { margin: 0 0 18px; }
     .fig img { width: 100%; height: auto; display: block; border-radius: 16px; border: 1px solid var(--line); }
@@ -77,23 +104,38 @@
     .doctor { display: flex; gap: 16px; align-items: flex-start; }
     .doctor-photo { flex-shrink: 0; width: 116px; }
     .doctor-photo img { width: 116px; height: 116px; border-radius: 999px; object-fit: cover; display: block; border: 3px solid var(--champagne); }
-    @media (max-width: 480px) { .doctor { flex-direction: column; } .doctor-photo { width: 100px; } .doctor-photo img { width: 100px; height: 100px; } }
     .mapbox { border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: var(--card); line-height: 0; }
     .mapbox iframe { width: 100%; height: 320px; border: 0; display: block; }
     .access { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; margin-bottom: 12px; font-size: 13px; line-height: 1.9; }
+    .booking-checklist { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .booking-check { padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+    .booking-check b { display: block; margin-bottom: 5px; color: var(--gold-dark); font-size: 13px; }
+    .booking-check span { display: block; color: var(--sub); font-size: 12px; line-height: 1.8; }
+    @media (max-width: 480px) { .doctor { flex-direction: column; } .doctor-photo { width: 100px; } .doctor-photo img { width: 100px; height: 100px; } .booking-checklist { grid-template-columns: 1fr; } }
     .doctor .name { font-family: 'Shippori Mincho',serif; font-size: 16px; font-weight: 600; }
     .doctor .role { font-size: 11px; color: var(--gold-dark); font-weight: 700; margin-bottom: 6px; }
     .quals { list-style: none; padding: 0; margin: 8px 0 0; }
     .quals li { font-size: 12px; color: var(--sub); line-height: 1.9; padding-left: 14px; position: relative; }
     .quals li::before { content: "・"; position: absolute; left: 0; color: var(--gold); }
     blockquote { margin: 10px 0 0; padding: 12px 14px; background: var(--bg); border-left: 3px solid var(--gold-light); border-radius: 0 10px 10px 0; font-size: 12.5px; color: var(--sub); line-height: 1.9; }
+    .detail-sticky-cta { display: none; }
+    @media (max-width: 640px) {
+      body.has-detail-sticky { padding-bottom: 82px; }
+      .detail-sticky-cta { position: fixed; z-index: 20; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); left: 12px; display: block; padding: 14px 18px; border-radius: 999px; background: linear-gradient(135deg, var(--gold), var(--gold-dark)); box-shadow: 0 10px 26px rgba(99,70,25,.32); color: #fff; font-size: 13px; font-weight: 900; line-height: 1.4; text-align: center; text-decoration: none; opacity: 0; pointer-events: none; transform: translateY(12px); transition: opacity .2s ease, transform .2s ease; }
+      .detail-sticky-cta.is-visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <a class="back" href="/">← ハミュレーションに戻る</a>
     <h1>ホワイトマイスター東京銀座院<span class="pr">PR</span></h1>
+    <div class="ad-disclosure">広告（アフィリエイト広告を含みます） <a href="/editorial-policy.html" onclick="gtag('event','editorial_policy_click',{source_page:'clinic_detail',placement:'hero_disclosure'});if(typeof clarity==='function'){clarity('event','editorial_policy_click')}">掲載・比較ポリシー</a></div>
     <p class="tagline">銀座駅から徒歩1分のホワイトニング専門歯科 / 完全個室・通院1回で完結するメニューあり</p>
+    <div class="hero-reservation">
+      <a class="cta" href="https://px.a8.net/svt/ejp?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE" target="_blank" rel="nofollow sponsored noopener" onclick="trackWhiteMeisterAffiliate('detail_hero','detail_hero')">銀座院の料金・空き状況を公式で見る</a>
+      <p class="cta-sub">料金、初回メニュー、Web予約の条件は公式サイトでご確認ください。</p>
+    </div>
 
     <!-- A8提供素材(バナー等)を使う場合はこの下に貼り付け -->
     <figure class="fig">
@@ -200,7 +242,8 @@
       <tr><th>アクセス</th><td>東京・銀座駅 N1出口(三越口)より徒歩1分</td><td class="vs">—</td></tr>
       <tr><th>予約</th><td>Web予約可</td><td class="vs">医院により異なる</td></tr>
     </table>
-    <p class="note" style="margin-top:8px;">※掲載情報は2026年8月時点の公式サイト情報をもとにしています。※自由診療のため公的保険は適用されません。料金・診療時間などの最新情報は公式サイトでご確認ください。</p>
+    <p class="note" style="margin-top:8px;">※掲載情報は2026年9月時点の公式サイト情報をもとにしています。※自由診療のため公的保険は適用されません。料金・診療時間などの最新情報は公式サイトでご確認ください。</p>
+    <p class="information-source"><span><strong>情報確認日：</strong>2026年09月30日</span><span><strong>参照元：</strong>公式サイト</span></p>
 
     <h2>アクセス</h2>
     <div class="access">
@@ -220,17 +263,47 @@
 
     <h2>こんな人に向いています</h2>
     <div class="card">
-      <p style="margin:0;">「何度も通う時間が取れないので、1回でしっかり変化を出したい」「結婚式や大事な予定が近い」「人目を気にせず、リラックスできる個室で受けたい」という人に向いた選択肢です。オフィスとホームを組み合わせるため、<b>施術後の白さを自宅で保ちたい人</b>にも合います。</p>
+      <p style="margin:0;">複数回の通院が難しい人、銀座で予約しやすい医院を探している人、オフィス施術と自宅ケアを組み合わせて検討したい人の選択肢です。大切な予定が近い場合も、希望日・歯の状態・必要な回数を予約時に相談しましょう。</p>
       <a class="simlink" href="/">→ 無料シミュレーターで、あなたの写真で白さの目安を見てみる</a>
+      <a class="simlink" href="/whitening/price.html#office-price" onclick="gtag('event','price_guide_click',{source_page:'clinic_detail',placement:'fit_section'});if(typeof clarity==='function'){clarity('event','price_guide_click')}">→ オフィスホワイトニングの料金・費用比較を見る</a>
     </div>
 
+    <h2>予約前に確認したい4つのこと</h2>
+    <div class="booking-checklist">
+      <div class="booking-check"><b>希望するメニューと料金</b><span>初回限定・期間限定メニューには条件があります。予約画面で、対象メニューと当日の表示金額を確認します。</span></div>
+      <div class="booking-check"><b>所要時間と予約枠</b><span>施術内容によって必要な時間は異なります。予定がある日は、カウンセリングを含めた所要時間を事前に確認します。</span></div>
+      <div class="booking-check"><b>歯の状態と受けられるか</b><span>人工歯、治療中の歯、知覚過敏、妊娠・授乳中などで気になる点があれば、予約前に医院へ相談します。</span></div>
+      <div class="booking-check"><b>変更・キャンセルの条件</b><span>予約変更やキャンセルの期限・方法はメニューによって変わる場合があります。予約ページの最新案内を確認します。</span></div>
+    </div>
+    <p class="note" style="margin-top:10px;">※上記は予約前の一般的な確認項目です。診療内容、適応、料金、予約条件は公式サイトおよび医院の案内を優先してください。</p>
+
     <h2 style="text-align:center;">公式サイトで料金・空き状況を見る</h2>
-    <a class="cta" href="https://px.a8.net/svt/ejp?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE" target="_blank" rel="nofollow sponsored noopener" onclick="gtag('event','affiliate_click',{clinic:'ホワイトマイスター',page:'clinic_detail'})">ホワイトマイスター公式サイトへ →</a>
+    <a class="cta" href="https://px.a8.net/svt/ejp?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE" target="_blank" rel="nofollow sponsored noopener" onclick="trackWhiteMeisterAffiliate('detail_sticky','footer')">ホワイトマイスター公式サイトへ →</a>
     <p class="cta-sub">料金メニュー・アクセス・Web予約は公式サイトでご確認いただけます</p>
     <img src="https://www19.a8.net/0.gif?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE" alt="" width="1" height="1" style="border:0;position:absolute;opacity:0;" />
 
     <p class="note">※本ページはアフィリエイト広告(A8.net)を利用しています。※ホワイトニングの効果には個人差があります。「必ず白くなる」ことを保証するものではありません。※一時的に知覚過敏のような痛みが出ることがあります。※差し歯・被せ物などの人工歯には効果がありません。虫歯・知覚過敏がある方、妊娠中・授乳中の方などは施術を受けられない場合があります。詳しくは公式サイト・歯科医師にご相談ください。</p>
+    <nav class="page-links" aria-label="サイト情報"><a href="/editorial-policy.html" onclick="gtag('event','editorial_policy_click',{source_page:'clinic_detail',placement:'footer'});if(typeof clarity==='function'){clarity('event','editorial_policy_click')}">掲載・比較ポリシー</a><a href="/about.html">運営者情報</a><a href="/privacy.html">プライバシーポリシー</a><a href="/terms.html">免責事項</a></nav>
     <a class="back" href="/">← ハミュレーションに戻る</a>
   </div>
+  <a class="detail-sticky-cta" href="https://px.a8.net/svt/ejp?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE" target="_blank" rel="nofollow sponsored noopener" onclick="trackWhiteMeisterAffiliate('detail_sticky','detail_sticky')">銀座院の料金・空き状況を公式で見る</a>
+  <script>
+    (function () {
+      var sticky = document.querySelector('.detail-sticky-cta');
+      var trigger = document.querySelector('.hero-reservation');
+      var mobile = window.matchMedia('(max-width: 640px)');
+      if (!sticky || !trigger) return;
+      function updateSticky() {
+        var shouldShow = mobile.matches && window.scrollY > Math.max(180, trigger.offsetTop + trigger.offsetHeight);
+        sticky.classList.toggle('is-visible', shouldShow);
+        document.body.classList.toggle('has-detail-sticky', shouldShow);
+      }
+      window.addEventListener('scroll', updateSticky, { passive: true });
+      window.addEventListener('resize', updateSticky);
+      if (mobile.addEventListener) mobile.addEventListener('change', updateSticky);
+      else mobile.addListener(updateSticky);
+      updateSticky();
+    })();
+  </script>
 </body>
 </html>
