@@ -21,13 +21,14 @@
     })(window, document, "clarity", "script", "xkyf1au7bm");
   </script>
   <script>
-    function trackWhiteMeisterAffiliate(offerPlacement, legacyPlacement) {
+    function trackWhiteMeisterAffiliate(placement) {
       var payload = {
         clinic: "ホワイトマイスター",
         source_page: "clinic_detail",
-        placement: legacyPlacement,
+        placement: placement,
         offer_id: "white-meister",
-        offer_placement: offerPlacement,
+        offer_placement: placement,
+        position: placement,
         recommendation_rule: "default",
         variant: "v13_wm_ginza",
         timing: "not_applicable",
@@ -40,8 +41,8 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#FAF7F1" />
-  <title>ホワイトマイスター東京銀座院の料金・予約前の確認ポイント | ハミュレーション</title>
-  <meta name="description" content="ホワイトマイスター東京銀座院の初回デュアルホワイトニング料金、アクセス、向いている人、予約前に確認したい点を公式情報をもとに整理。比較ページと無料シミュレーターも案内します。" />
+  <title>ホワイトマイスターは表参道から銀座へ移転｜料金・予約前の確認点 | ハミュレーション</title>
+  <meta name="description" content="ホワイトマイスターは表参道から銀座へ移転しています。現在の所在地、料金・初回メニュー、予約時に確認したい条件を公式情報をもとに整理しました。料金・空き状況は公式サイトでご確認ください。" />
   <link rel="canonical" href="https://www.hamulation.com/clinic/white-meister.html" />
   <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
@@ -111,7 +112,32 @@
     .booking-check { padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
     .booking-check b { display: block; margin-bottom: 5px; color: var(--gold-dark); font-size: 13px; }
     .booking-check span { display: block; color: var(--sub); font-size: 12px; line-height: 1.8; }
-    @media (max-width: 480px) { .doctor { flex-direction: column; } .doctor-photo { width: 100px; } .doctor-photo img { width: 100px; height: 100px; } .booking-checklist { grid-template-columns: 1fr; } }
+    .current-location { margin: 0 0 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); font-size: 12.5px; line-height: 1.8; }
+    .current-location b { display: block; color: var(--gold-dark); font-size: 11px; letter-spacing: .6px; }
+    .relocation { margin-bottom: 24px; background: var(--champagne); border-color: var(--gold-light); }
+    .relocation h2 { margin-top: 0; }
+    .relocation a, .information-source a { color: var(--gold-dark); font-weight: 700; text-underline-offset: 2px; }
+    .page-index { margin: 0 0 18px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+    .page-index b { display: block; margin-bottom: 8px; color: var(--gold-dark); font-size: 11px; letter-spacing: .08em; }
+    .page-index a { display: inline-block; margin: 3px 12px 3px 0; color: var(--gold-dark); font-size: 12px; font-weight: 700; text-decoration: none; }
+    .page-index a:hover, .page-index a:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+    .wide-table { overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; background: var(--card); }
+    .wide-table table { min-width: 1060px; margin: 0; border: 0; border-radius: 0; }
+    .wide-table th { width: auto; white-space: normal; }
+    .wide-table a { color: var(--gold-dark); font-weight: 700; text-underline-offset: 2px; }
+    .menu-decision { margin: 12px 0 0; padding: 14px 16px; border-left: 3px solid var(--gold); background: #fffaf3; color: var(--sub); font-size: 12.5px; line-height: 1.85; }
+    .menu-decision ul { margin: 7px 0 0; padding-left: 1.2em; }
+    .menu-decision li { margin: 4px 0; }
+    .flow-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
+    .flow-step { padding: 13px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+    .flow-step b { display: block; margin-bottom: 5px; color: var(--gold-dark); font-size: 12.5px; }
+    .flow-step span { display: block; color: var(--sub); font-size: 11.5px; line-height: 1.75; }
+    .faq-list { padding: 0; overflow: hidden; }
+    .faq-list details { padding: 14px 16px; border-bottom: 1px solid var(--line); }
+    .faq-list details:last-child { border-bottom: 0; }
+    .faq-list summary { cursor: pointer; color: var(--gold-dark); font-size: 13px; font-weight: 900; line-height: 1.6; }
+    .faq-list p { margin: 8px 0 0; color: var(--sub); font-size: 12.5px; }
+    @media (max-width: 480px) { .doctor { flex-direction: column; } .doctor-photo { width: 100px; } .doctor-photo img { width: 100px; height: 100px; } .booking-checklist, .flow-list { grid-template-columns: 1fr; } }
     .doctor .name { font-family: 'Shippori Mincho',serif; font-size: 16px; font-weight: 600; }
     .doctor .role { font-size: 11px; color: var(--gold-dark); font-weight: 700; margin-bottom: 6px; }
     .quals { list-style: none; padding: 0; margin: 8px 0 0; }
@@ -129,13 +155,16 @@
 <body>
   <div class="wrap">
     <a class="back" href="/">← ハミュレーションに戻る</a>
-    <h1>ホワイトマイスター東京銀座院<span class="pr">PR</span></h1>
+    <h1>ホワイトマイスター東京銀座院（旧・表参道）<br>料金・予約前の確認ポイント<span class="pr">PR</span></h1>
     <div class="ad-disclosure">広告（アフィリエイト広告を含みます） <a href="/editorial-policy.html" onclick="gtag('event','editorial_policy_click',{source_page:'clinic_detail',placement:'hero_disclosure'});if(typeof clarity==='function'){clarity('event','editorial_policy_click')}">掲載・比較ポリシー</a></div>
-    <p class="tagline">銀座駅から徒歩1分のホワイトニング専門歯科 / 完全個室・通院1回で完結するメニューあり</p>
+    <p class="tagline">ホワイトマイスターは表参道から銀座へ移転しています。表参道で検索した方は、現在の所在地・料金・予約条件を公式サイトで確認してください。</p>
+    <div class="current-location"><b>CURRENT LOCATION</b>銀座駅N1出口（三越口）から徒歩1分<br>東京都中央区銀座4-8-11 善隣ビル6F</div>
     <div class="hero-reservation">
-      <a class="cta" href="https://px.a8.net/svt/ejp?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE" target="_blank" rel="nofollow sponsored noopener" onclick="trackWhiteMeisterAffiliate('detail_hero','detail_hero')">銀座院の料金・空き状況を公式で見る</a>
+      <a class="cta" href="https://px.a8.net/svt/ejp?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE" target="_blank" rel="nofollow sponsored noopener" onclick="trackWhiteMeisterAffiliate('hero')">銀座院の料金・空き状況を公式で確認する</a>
       <p class="cta-sub">料金、初回メニュー、Web予約の条件は公式サイトでご確認ください。</p>
     </div>
+
+    <nav class="page-index" aria-label="ページ内目次"><b>このページで確認できること</b><a href="#relocation">現在地・アクセス</a><a href="#menus">メニューと料金</a><a href="#visit-flow">来院と自宅ケア</a><a href="#booking-conditions">予約・変更の条件</a><a href="#guarantee">白さ保証</a></nav>
 
     <!-- A8提供素材(バナー等)を使う場合はこの下に貼り付け -->
     <figure class="fig">
@@ -143,7 +172,41 @@
       <figcaption>ホワイトマイスター東京銀座院の院内</figcaption>
     </figure>
 
-    <h2>5つの特徴</h2>
+    <section class="card relocation" id="relocation" aria-labelledby="relocation-title">
+      <h2 id="relocation-title">表参道で検索した方へ｜現在は銀座院です</h2>
+      <p>ホワイトマイスターは2024年11月に表参道から銀座へ移転しています。現在の所在地は銀座4丁目で、銀座駅N1出口（三越口）から徒歩1分です。</p>
+      <p style="margin-bottom:10px;">旧所在地の情報や古い予約案内を見た場合は、現在の診療日時、料金、予約枠を公式サイトで確認してください。</p>
+      <a href="https://white-meister.com/clinic/access/" target="_blank" rel="noopener">公式アクセスで現在地・診療時間を確認する</a>
+    </section>
+
+    <section id="menus" aria-labelledby="menus-title">
+      <h2 id="menus-title">メニューの違いと、料金区分を確認</h2>
+      <p>通常の基本メニューと、公式予約画面に表示されている初回・期間限定メニューは区分が異なります。下表は2026年10月31日に確認できた表示を整理したものです。対象・終了時期は予約画面で再確認してください。</p>
+      <div class="wide-table"><table><thead><tr class="thead"><th>メニュー</th><th>院内施術の内容</th><th>自宅ケア</th><th>税込料金</th><th>料金区分・対象者</th><th>予約枠／滞在目安</th><th>情報源・確認日</th></tr></thead><tbody><tr><th>マイスターホワイトニング</th><td>公式メニューでは薬剤塗布2回・15分照射×2回の案内</td><td>基本メニューにはホームケアの記載なし。希望時は医院へ確認</td><td><strong>通常 26,000円</strong><br>初回・期間限定 22,000円</td><td>通常価格と、予約画面の初回・期間限定表示は別区分</td><td>予約画面は90分表示。FAQには初診約120分の案内もあるため、希望メニューのカウンセリングを含む滞在時間を確認</td><td><a href="https://white-meister.com/service/meister-whitening/" target="_blank" rel="noopener">基本メニュー</a> ／ <a href="https://whitemeister.stores.jp/reserve/ginza/3583975" target="_blank" rel="noopener">公式予約</a><br>2026年10月31日</td></tr><tr><th>マイスタープラス</th><td>公式説明では薬剤塗布3回・15分照射×3回の案内</td><td>ホームケアの有無・内容は対象メニューを公式で確認</td><td><strong>通常 36,000円</strong><br>初回・期間限定 28,000円</td><td>初回・期間限定の対象・終了時期は公式予約画面で確認</td><td>予約画面は90分表示。FAQの初診約120分と同じ意味とは断定せず、予定がある場合は医院へ確認</td><td><a href="https://white-meister.com/campaign/meister-plus-whitening/" target="_blank" rel="noopener">プラスの公式説明</a> ／ <a href="https://whitemeister.stores.jp/reserve/ginza/3583975" target="_blank" rel="noopener">公式予約</a><br>2026年10月31日</td></tr><tr><th>デュアル</th><td>院内施術とホームケアを組み合わせる公式案内</td><td>選択できるホームケアの種類・セット範囲は、予約するメニューで確認</td><td><strong>初回・期間限定 31,000円</strong></td><td>初めて利用する方向けの期間限定表示。ホームケアの選択で通常価格を単純に計算しない</td><td>予約画面は90分表示。自宅で行うケアの使い方・期間もあわせて確認</td><td><a href="https://white-meister.com/campaign/dualwhitening-campaign/" target="_blank" rel="noopener">デュアルの公式説明</a> ／ <a href="https://whitemeister.stores.jp/reserve/ginza/3583975" target="_blank" rel="noopener">公式予約</a><br>2026年10月31日</td></tr></tbody></table></div>
+      <div class="menu-decision"><b>選ぶときの見方</b><ul><li>院内施術を中心に比較したい場合は、マイスターとプラスの内容差を確認します。</li><li>自宅ケアも組み合わせたい場合は、デュアルに含まれる用品と使い方を確認します。</li><li>希望の白さに必要な方法・回数は、歯の状態を診察した歯科医師に相談してください。</li></ul></div>
+      <a class="cta" href="https://px.a8.net/svt/ejp?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE" target="_blank" rel="nofollow sponsored noopener" onclick="trackWhiteMeisterAffiliate('menu_comparison')">公式で対象メニュー・料金・空き状況を確認する</a>
+      <p class="cta-sub">初回・期間限定メニューは、公式予約画面の対象条件を確認してください。</p>
+    </section>
+
+    <section id="visit-flow" aria-labelledby="visit-flow-title">
+      <h2 id="visit-flow-title">通院1回の意味と、当日に確保したい時間</h2>
+      <p>「通院1回」は来院回数についての案内です。デュアルには自宅で行うケアが含まれるため、自宅での使用方法や期間も確認しましょう。すべての人が1回で希望の白さに到達するという意味ではありません。</p>
+      <div class="flow-list"><div class="flow-step"><b>相談・診察</b><span>歯の状態と希望を確認します。</span></div><div class="flow-step"><b>院内施術</b><span>選択したメニューの内容を受けます。</span></div><div class="flow-step"><b>ホームケアの案内</b><span>デュアルなど対象メニューでは、用品・使い方を確認します。</span></div><div class="flow-step"><b>自宅ケア</b><span>対象メニューの場合に、案内に沿って進めます。</span></div></div>
+      <p class="note" style="margin-top:10px;">公式の予約メニューには90分、予約FAQには初診約120分の案内があります。後に予定がある場合は、希望メニューのカウンセリングを含む滞在時間を予約前に医院へ確認してください。<a href="https://white-meister.com/faq_category/reservation/" target="_blank" rel="noopener">予約FAQを見る</a>（2026年10月31日確認）</p>
+    </section>
+
+    <section id="booking-conditions" aria-labelledby="booking-conditions-title">
+      <h2 id="booking-conditions-title">予約・変更・キャンセルで確認したい条件</h2>
+      <div class="booking-checklist"><div class="booking-check"><b>初回・リピーター・チケット</b><span>予約画面の現行メニュー名と対象区分を確認します。初回限定・期間限定の対象を取り違えないようにしましょう。</span></div><div class="booking-check"><b>予約変更</b><span>公式予約一覧では、チケット利用とそれ以外で扱いが異なる案内があります。非チケットの変更は電話または問い合わせフォームで24時間前までの案内ですが、対象メニューの条件を確認してください。</span></div><div class="booking-check"><b>キャンセル</b><span>期限・連絡方法はメニューやチケットの利用状況とセットで確認します。「無料」「変更自由」とは一律に判断しません。</span></div><div class="booking-check"><b>当日予約・カウンセリング</b><span>当日予約は空き状況によります。カウンセリングのみを希望する場合は、施術予約と同じ扱いかを医院へ確認してください。</span></div></div>
+      <p class="note" style="margin-top:10px;">予約可能な期間や個別画面の「日程変更」表示にはメニュー差があるため、固定の期限として一般化していません。<a href="https://whitemeister.stores.jp/reserve/ginza/booking_pages" target="_blank" rel="noopener">公式予約一覧・区分別案内を見る</a>（2026年10月31日確認）</p>
+    </section>
+
+    <section id="guarantee" aria-labelledby="guarantee-title">
+      <h2 id="guarantee-title">白さ保証で受けられる対応と、対象条件</h2>
+      <div class="card"><p>マイスタープラスの公式説明には、条件に応じてホームホワイトニングセットを提供する「白さ保証」の案内があります。返金を約束する案内ではありません。対象メニュー、判定方法、適用除外、申出方法は公式の詳細と予約時の説明を確認してください。</p><a href="https://white-meister.com/campaign/meister-plus-whitening/" target="_blank" rel="noopener">公式の白さ保証の条件を見る</a><p class="note" style="margin:10px 0 0;">※スターの返金保証とは、名称が似ていても対象コース・内容・申出方法が異なります。優劣ではなく、各公式条件で確認してください。情報確認日：2026年10月31日</p></div>
+    </section>
+
+    <h2>医院の特徴</h2>
     <div class="card">
       <div class="feature">
         <div class="num">1</div>
@@ -159,11 +222,11 @@
       </div>
       <div class="feature">
         <div class="num">4</div>
-        <div><b>通院1回で完結するデュアルメニュー</b><span>オフィスとホームを組み合わせた「デュアルホワイトニング」を、通院1回で完結できる形で提供しています(一般的なデュアルは複数回の通院が必要とされています)。</span></div>
+        <div><b>通院1回のデュアルメニュー案内</b><span>オフィスとホームを組み合わせる「デュアルホワイトニング」を案内しています。来院後の自宅ケアを含むため、用品と使い方は予約するメニューで確認します。</span></div>
       </div>
       <div class="feature">
         <div class="num">5</div>
-        <div><b>認定資格を持つ歯科医師が在籍</b><span>ホワイトニングエキスパート認定医師をはじめ、専門資格を持つ歯科医師が複数名在籍。カルテを院内で共有し、どの医師が担当しても同じ水準の対応ができる体制をとっています。</span></div>
+        <div><b>認定資格を持つ歯科医師が在籍</b><span>公式サイトでは、ホワイトニングエキスパート認定医師をはじめとする資格を持つ歯科医師の案内があります。担当や相談内容は予約時に確認してください。</span></div>
       </div>
     </div>
 
@@ -189,21 +252,6 @@
       <h3>広く清潔なトイレ</h3>
       <p style="margin-bottom:0;">銀座の中心部としては珍しく広めで、自動で香るアロマや荷物置きも用意されています。</p>
     </div>
-
-    <h2>デュアルホワイトニング(初回限定メニュー)</h2>
-    <p>
-      オフィスホワイトニングとホームホワイトニングを組み合わせる方式を「デュアルホワイトニング」と呼びます。一般的には複数回の通院が必要とされますが、<strong>ホワイトマイスターでは通院1回で完結する形</strong>で提供されています。
-    </p>
-    <div class="price-box">
-      <div class="row"><span>マイスタープラスホワイトニング(院内での施術)</span><span>¥36,000</span></div>
-      <div class="row"><span>ホームホワイトニングセット(¥12,500)またはホワイトニングペン(¥10,000)</span><span>選択制</span></div>
-      <div class="row" style="margin-top:6px;"><span style="font-weight:700;">初回限定・期間限定のセット価格</span><span class="total">¥31,000<span style="font-size:12px;">(税込)</span></span></div>
-      <div style="font-size:11px;color:var(--sub);margin-top:8px;line-height:1.8;">通常価格 ¥46,000 のところ。当院の利用が初めての方向けの特別メニューで、期間限定のため予告なく終了する場合があります。</div>
-    </div>
-    <p>
-      公式サイトでは、この組み合わせにより<strong>1回の通院で平均8段階以上、合計10段階以上の白さアップも目指せる</strong>と案内されています(効果には個人差があります)。2024年に導入された新しいLED照射機により、痛みの発生を軽減する効果もあるとされています。
-    </p>
-    <p class="note" style="margin-top:0;">※ホワイトニングの効果には個人差があり、歯の質・年齢・生活習慣などにより差があります。一時的に知覚過敏のような痛みが出ることがあります。※料金・キャンペーン内容は変更される場合があります。最新情報は公式サイトでご確認ください。</p>
 
     <h2>院長・歯科医師</h2>
     <div class="card">
@@ -231,19 +279,7 @@
       </p>
     </div>
 
-    <h2>条件面の整理</h2>
-    <table>
-      <tr class="thead"><th></th><td><b>ホワイトマイスター</b></td><td class="vs">オフィスの一般的な目安</td></tr>
-      <tr><th>方式</th><td>オフィス / ホーム / デュアル(医療ホワイトニング)</td><td class="vs">同左</td></tr>
-      <tr><th>料金目安</th><td><b>デュアル 初回 ¥31,000(税込)</b><br>そのほかのメニューは公式サイトにて</td><td class="vs">オフィス1回 約1〜7万円</td></tr>
-      <tr><th>通院回数</th><td>デュアルは通院1回で完結</td><td class="vs">デュアルは複数回の通院が一般的</td></tr>
-      <tr><th>施術者</th><td>ホワイトニング専門の歯科医師(認定医が在籍)</td><td class="vs">歯科医師・歯科衛生士</td></tr>
-      <tr><th>院内</th><td>完全個室・マッサージチェア・パウダールーム</td><td class="vs">医院により異なる</td></tr>
-      <tr><th>アクセス</th><td>東京・銀座駅 N1出口(三越口)より徒歩1分</td><td class="vs">—</td></tr>
-      <tr><th>予約</th><td>Web予約可</td><td class="vs">医院により異なる</td></tr>
-    </table>
-    <p class="note" style="margin-top:8px;">※掲載情報は2026年9月時点の公式サイト情報をもとにしています。※自由診療のため公的保険は適用されません。料金・診療時間などの最新情報は公式サイトでご確認ください。</p>
-    <p class="information-source"><span><strong>情報確認日：</strong>2026年09月30日</span><span><strong>参照元：</strong>公式サイト</span></p>
+    <section class="card" aria-label="料金比較ページへの案内"><p style="margin:0;">ホワイトマイスター以外のオフィスホワイトニングも、料金の単位・方式・予約条件を分けて比較できます。</p><a class="simlink" href="/whitening/price.html#office-price" onclick="gtag('event','price_guide_click',{source_page:'clinic_detail',placement:'clinic_comparison'});if(typeof clarity==='function'){clarity('event','price_guide_click')}">→ オフィスホワイトニングの料金・費用比較を見る</a></section>
 
     <h2>アクセス</h2>
     <div class="access">
@@ -268,25 +304,41 @@
       <a class="simlink" href="/whitening/price.html#office-price" onclick="gtag('event','price_guide_click',{source_page:'clinic_detail',placement:'fit_section'});if(typeof clarity==='function'){clarity('event','price_guide_click')}">→ オフィスホワイトニングの料金・費用比較を見る</a>
     </div>
 
-    <h2>予約前に確認したい4つのこと</h2>
-    <div class="booking-checklist">
-      <div class="booking-check"><b>希望するメニューと料金</b><span>初回限定・期間限定メニューには条件があります。予約画面で、対象メニューと当日の表示金額を確認します。</span></div>
-      <div class="booking-check"><b>所要時間と予約枠</b><span>施術内容によって必要な時間は異なります。予定がある日は、カウンセリングを含めた所要時間を事前に確認します。</span></div>
-      <div class="booking-check"><b>歯の状態と受けられるか</b><span>人工歯、治療中の歯、知覚過敏、妊娠・授乳中などで気になる点があれば、予約前に医院へ相談します。</span></div>
-      <div class="booking-check"><b>変更・キャンセルの条件</b><span>予約変更やキャンセルの期限・方法はメニューによって変わる場合があります。予約ページの最新案内を確認します。</span></div>
-    </div>
-    <p class="note" style="margin-top:10px;">※上記は予約前の一般的な確認項目です。診療内容、適応、料金、予約条件は公式サイトおよび医院の案内を優先してください。</p>
+    <h2>よくある質問</h2>
+    <section class="card faq-list" aria-label="ホワイトマイスター東京銀座院のよくある質問">
+      <details>
+        <summary>表参道のホワイトマイスターは現在どこにありますか？</summary>
+        <p>現在は表参道ではなく、2024年11月に移転した銀座院です。所在地は東京都中央区銀座4-8-11 善隣ビル6F、銀座駅N1出口（三越口）から徒歩1分です。</p>
+      </details>
+      <details>
+        <summary>マイスター・プラス・デュアルの違いは？</summary>
+        <p>マイスターとプラスは院内施術の照射回数などが異なり、デュアルは院内施術と自宅ケアを組み合わせる案内です。通常料金と初回・期間限定料金も区分を分けて、公式予約画面で確認してください。</p>
+      </details>
+      <details>
+        <summary>通院1回なら自宅ケアは不要ですか？</summary>
+        <p>「通院1回」は来院回数についての案内です。デュアルは自宅ケアを組み合わせるメニューなので、用品・使い方・期間を対象メニューごとに確認してください。</p>
+      </details>
+      <details>
+        <summary>初回は何時間みておけばよいですか？</summary>
+        <p>公式の予約メニューには90分、予約FAQには初診約120分の案内があります。数値を同じ意味とは断定せず、希望メニューのカウンセリングを含む滞在時間を医院へ確認してください。</p>
+      </details>
+      <details>
+        <summary>白さ保証は返金保証ですか？</summary>
+        <p>マイスタープラスの公式説明では、条件に応じたホームホワイトニングセットの提供を案内しています。返金を約束する内容としては扱わず、対象条件・判定方法・申出方法を公式で確認してください。</p>
+      </details>
+    </section>
 
     <h2 style="text-align:center;">公式サイトで料金・空き状況を見る</h2>
-    <a class="cta" href="https://px.a8.net/svt/ejp?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE" target="_blank" rel="nofollow sponsored noopener" onclick="trackWhiteMeisterAffiliate('detail_sticky','footer')">ホワイトマイスター公式サイトへ →</a>
+    <a class="cta" href="https://px.a8.net/svt/ejp?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE" target="_blank" rel="nofollow sponsored noopener" onclick="trackWhiteMeisterAffiliate('footer')">銀座院の料金・空き状況を公式で確認する</a>
     <p class="cta-sub">料金メニュー・アクセス・Web予約は公式サイトでご確認いただけます</p>
     <img src="https://www19.a8.net/0.gif?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE" alt="" width="1" height="1" style="border:0;position:absolute;opacity:0;" />
 
     <p class="note">※本ページはアフィリエイト広告(A8.net)を利用しています。※ホワイトニングの効果には個人差があります。「必ず白くなる」ことを保証するものではありません。※一時的に知覚過敏のような痛みが出ることがあります。※差し歯・被せ物などの人工歯には効果がありません。虫歯・知覚過敏がある方、妊娠中・授乳中の方などは施術を受けられない場合があります。詳しくは公式サイト・歯科医師にご相談ください。</p>
+    <p class="information-source"><span><strong>情報確認日：</strong>2026年10月31日</span><span><strong>参照元：</strong><a href="https://white-meister.com/clinic/access/" target="_blank" rel="noopener">公式アクセス</a> ／ <a href="https://white-meister.com/service/meister-whitening/" target="_blank" rel="noopener">基本メニュー</a> ／ <a href="https://whitemeister.stores.jp/reserve/ginza/booking_pages" target="_blank" rel="noopener">公式予約案内</a> ／ <a href="https://white-meister.com/campaign/meister-plus-whitening/" target="_blank" rel="noopener">プラスの保証説明</a></span></p>
     <nav class="page-links" aria-label="サイト情報"><a href="/editorial-policy.html" onclick="gtag('event','editorial_policy_click',{source_page:'clinic_detail',placement:'footer'});if(typeof clarity==='function'){clarity('event','editorial_policy_click')}">掲載・比較ポリシー</a><a href="/about.html">運営者情報</a><a href="/privacy.html">プライバシーポリシー</a><a href="/terms.html">免責事項</a></nav>
     <a class="back" href="/">← ハミュレーションに戻る</a>
   </div>
-  <a class="detail-sticky-cta" href="https://px.a8.net/svt/ejp?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE" target="_blank" rel="nofollow sponsored noopener" onclick="trackWhiteMeisterAffiliate('detail_sticky','detail_sticky')">銀座院の料金・空き状況を公式で見る</a>
+  <a class="detail-sticky-cta" href="https://px.a8.net/svt/ejp?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE" target="_blank" rel="nofollow sponsored noopener" onclick="trackWhiteMeisterAffiliate('mobile_sticky')">銀座院の料金・空き状況を公式で確認する</a>
   <script>
     (function () {
       var sticky = document.querySelector('.detail-sticky-cta');
