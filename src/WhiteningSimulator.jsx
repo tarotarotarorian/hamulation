@@ -10,7 +10,9 @@ import { useState, useRef, useEffect, useCallback } from "react";
    ------------------------------------------------------------------ */
 
 /* 画像アセット(public/ 直下)。空文字にするとフォールバック表示 */
-const LOGO_SRC = "/logo.png";
+// 配布パッケージに画像ロゴが含まれていないため、テキストのブランド表記を使う。
+// 欠落した画像へのリクエストを避け、ヘッダーのアクセシブルな名称も維持する。
+const LOGO_SRC = "";
 const HERO_SRC = "/hero.jpg";
 const METHOD_ICONS = { office: "/method1.png", home: "/method2.png", self: "/method3.png" };
 
@@ -36,28 +38,17 @@ const SR_ONLY = {
 };
 
 /* --- GA4イベント送信(gtag未読込時は何もしない) --- */
-function trafficContext() {
-  if (typeof window === "undefined") return {};
-
-  const search = new URLSearchParams(window.location.search);
-  const mappings = {
-    utm_source: "traffic_source",
-    utm_medium: "traffic_medium",
-    utm_campaign: "traffic_campaign",
-    utm_content: "traffic_content",
-    from: "internal_source",
-  };
-
-  return Object.fromEntries(
-    Object.entries(mappings)
-      .map(([queryKey, eventKey]) => [eventKey, search.get(queryKey)])
-      .filter(([, value]) => value),
-  );
-}
-
 function track(name, params) {
   if (typeof window !== "undefined" && typeof window.gtag === "function") {
-    window.gtag("event", name, { ...trafficContext(), ...(params || {}) });
+    window.gtag("event", name, params || {});
+  }
+}
+
+function trackEditorialPolicyClick(placement) {
+  const payload = { source_page: "simulator", placement };
+  track("editorial_policy_click", payload);
+  if (typeof window !== "undefined" && typeof window.clarity === "function") {
+    window.clarity("event", "editorial_policy_click");
   }
 }
 
@@ -208,13 +199,13 @@ const AFFILIATES = [
     areaGroup: "ginza",
     tag: "オフィス/ホーム",
     methods: ["office", "home"],
-    price: "デュアル 初回 ¥31,000(税込)",
+    price: "デュアル 初回 ¥31,000（税込）",
     note: "ホワイトニング専門歯科 / 完全個室・マッサージチェア / 通院1回で完結するデュアル",
     reason: "銀座で、通院1回でしっかり白さを目指したい方に",
     cta: "銀座の初回メニューを確認する →",
     stickyCta: "銀座の初回メニューを確認する",
     priority: 2,
-    verifiedAt: "2026年8月",
+    verifiedAt: "2026年9月",
     href: "https://px.a8.net/svt/ejp?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE",
     pixel: "https://www19.a8.net/0.gif?a8mat=4B7WD2+DG1HWQ+4TU2+5YRHE",
     page: "/clinic/white-meister.html",
@@ -451,6 +442,7 @@ export default function WhiteningSimulator() {
   const [detectMsg, setDetectMsg] = useState(""); // 自動検出の結果メッセージ
   const [offerCardVisible, setOfferCardVisible] = useState(true); // 結果オファーカードが表示域にあるか(固定CTA制御)
   const [timing, setTiming] = useState(null); // Phase2-1: いつまでに白くしたいか(2w | 1-3m | undecided)
+  const [areaPreference, setAreaPreference] = useState(null); // ginza | other_or_undecided
 
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
@@ -460,8 +452,16 @@ export default function WhiteningSimulator() {
   const userMovedRef = useRef(false); // 検出完了前にユーザーが枠を動かしたか
   const detectSeqRef = useRef(0); // 画像切替時に古い検出結果を破棄するための連番
   const resultViewedRef = useRef(false); // sim_result_view を1セッション1回に
-  const impressedOfferRef = useRef(null); // offer_impression をオファーごと1回に
+  const impressedOfferRef = useRef(null); // 主推奨の offer_impression をオファーごと1回に
   const offerCardRef = useRef(null); // 結果オファーカードの可視監視用
+  const campaignStartedRef = useRef(false); // UTM付き導線での二重起動を防止
+  // ファネルを流入元ごとに分解するため、シミュレーターを開いた時点の文脈を保持する。
+  // URLのUTMは計測後に消すため、以降のイベントにも同じ文脈を引き継ぐ。
+  const entryContextRef = useRef({
+    source_page: "simulator",
+    entry_point: "direct",
+    placement: "direct",
+  });
 
   const m = METHODS.find((x) => x.id === method);
   // 方式別の到達上限(maxIdx)で、シェードゲージと画像加工のintensityを同期してキャップする。
@@ -472,38 +472,68 @@ export default function WhiteningSimulator() {
   const shadeIdx = Math.min(maxIdx, startShade + Math.round(intensity * 7));
   const atSelfCeiling = m.id === "self" && rawIntensity > intensity + 0.001; // セルフ上限到達フラグ
 
-  /* ---------- Phase1: 結果画面オファー(推奨1件の選定と計測) ----------
-     推奨順位: ①方式一致 → ②priority(EPC等のタイブレーク)。
-     エリア適合・希望の出し分けは案件が増えてから前段に追加する(Phase2)。 */
-  const OFFER_VARIANT = "v11a";
-  const recommendedOffer = [...AFFILIATES].sort((a, b) => {
+  /* ---------- 結果画面オファー(推奨1件の選定と計測) ----------
+     通常は方式一致→priorityの順を維持。銀座へ行ける急ぎのオフィス希望だけ、
+     ホワイトマイスターを主推奨に切り替える。 */
+  const OFFER_VARIANT = "v13_wm_ginza";
+  const defaultRankedOffers = [...AFFILIATES].sort((a, b) => {
     const am = a.methods.includes(method) ? 0 : 1;
     const bm = b.methods.includes(method) ? 0 : 1;
     if (am !== bm) return am - bm;
     return (a.priority ?? 99) - (b.priority ?? 99);
-  })[0];
+  });
+  const isGinzaUrgent = method === "office" && timing === "2w" && areaPreference === "ginza";
+  const recommendationRule = isGinzaUrgent ? "ginza_urgent" : "default";
+  const whiteMeisterOffer = AFFILIATES.find((offer) => offer.offerId === "white-meister");
+  const rankedOffers = isGinzaUrgent && whiteMeisterOffer
+    ? [whiteMeisterOffer, ...defaultRankedOffers.filter((offer) => offer.offerId !== "white-meister")]
+    : defaultRankedOffers;
+  const recommendedOffer = rankedOffers[0];
+  // 条件に合わない人へホワイトマイスターを強く送客しないため、通常時は代替候補からも外す。
+  const alternativeOffers = rankedOffers
+    .filter((offer) => offer.offerId !== recommendedOffer.offerId && (isGinzaUrgent || offer.offerId !== "white-meister"))
+    .slice(0, 2);
   const recMatched = recommendedOffer.methods.includes(method); // 選択方式と一致するか
-  const offerParams = (offer, position) => ({
+  const primaryHeading = isGinzaUrgent ? "銀座で、短期間に始めたい方へ" : (recMatched ? "この白さを目指すなら" : "もっと白さを目指したいなら");
+  const primaryRecommendationText = isGinzaUrgent
+    ? "通院1回で完結するデュアルホワイトニングの案内があります。料金・予約条件は公式サイトでご確認ください。"
+    : recommendedOffer.reason;
+  const primaryCta = isGinzaUrgent ? "公式で料金・Web予約を確認する" : recommendedOffer.cta;
+  const primaryStickyCta = isGinzaUrgent ? "公式で料金・Web予約を確認する" : `${recommendedOffer.stickyCta} →`;
+  const selectedAreaGroup = areaPreference || "other_or_undecided";
+  const offerParams = (offer, offerPlacement, alternativeRank = null) => ({
     offer_id: offer.offerId,
-    position, // result_primary | result_sticky | result_alternative
+    placement: offerPlacement,
+    position: offerPlacement, // 既存のposition分析を維持
+    offer_placement: offerPlacement,
+    ...(alternativeRank ? { alternative_rank: alternativeRank } : {}),
     method,
+    timing,
     treatment_count: sessions, // GA4のsessionsと衝突しない名称
     shade_before: SHADES[startShade].name,
     shade_after: SHADES[shadeIdx].name,
     recommendation_reason: offer.reason,
-    area_group: offer.areaGroup,
+    recommendation_rule: recommendationRule,
+    area_group: selectedAreaGroup,
+    offer_area_group: offer.areaGroup,
     variant: OFFER_VARIANT,
     source_page: "simulator",
   });
-  const trackOfferClick = (offer, position) => track("offer_click", offerParams(offer, position));
-  const trackAffiliateClick = (offer, position, extra = {}) => track("affiliate_click", {
-    ...offerParams(offer, position),
-    clinic: offer.name,
-    ...extra,
-  });
-  const trackOutboundOffer = (offer, position, extra = {}) => {
-    trackOfferClick(offer, position);
-    trackAffiliateClick(offer, position, extra);
+  const trackOfferClick = (offer, offerPlacement, alternativeRank = null) => {
+    const params = offerParams(offer, offerPlacement, alternativeRank);
+    // 既存のABテスト用イベントを残しつつ、ページ横断の送客KPIも揃える。
+    track("offer_click", params);
+    track("affiliate_click", { ...entryContextRef.current, ...params, source_page: "simulator" });
+  };
+  const trackClinicListClick = (offer, groupMethod) => {
+    const params = offerParams(offer, "clinic_list");
+    track("affiliate_click", {
+      ...entryContextRef.current,
+      clinic: offer.name,
+      ...params,
+      method: groupMethod,
+      source_page: "simulator",
+    });
   };
 
   /* ---------- Phase2-1: 希望時期の1問マッチング ----------
@@ -515,6 +545,16 @@ export default function WhiteningSimulator() {
     const nextMethod = t === "2w" && method !== "office" ? "office" : method;
     if (nextMethod !== method) setMethod(nextMethod);
     track("whiteness_timing_selected", { timing: t, method: nextMethod, variant: OFFER_VARIANT, source_page: "simulator" });
+  };
+  const selectAreaPreference = (nextArea) => {
+    setAreaPreference(nextArea);
+    track("whiteness_area_selected", {
+      area_group: nextArea,
+      timing,
+      method,
+      variant: OFFER_VARIANT,
+      source_page: "simulator",
+    });
   };
   const timingNote =
     timing === "2w" ? "お急ぎなら、少ない回数で変化を感じやすい歯科医院のオフィスホワイトニングがおすすめです。"
@@ -626,12 +666,40 @@ export default function WhiteningSimulator() {
     if (screen === "sim" && editMode === "compare" && imgSrc && !resultViewedRef.current) {
       resultViewedRef.current = true;
       track("sim_result_view", {
+        ...entryContextRef.current,
         method, treatment_count: sessions,
         shade_before: SHADES[startShade].name, shade_after: SHADES[shadeIdx].name,
         variant: OFFER_VARIANT, source_page: "simulator",
       });
     }
   }, [screen, editMode, imgSrc]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // コラム・料金ページの「シミュレーションする」導線は、着地後にもう一度CTAを
+  // 押させず、画像選択画面へ直接案内する。UTMは計測後にURLから取り除く。
+  useEffect(() => {
+    if (campaignStartedRef.current || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const source = params.get("utm_source");
+    if (!source) return;
+
+    campaignStartedRef.current = true;
+    entryContextRef.current = {
+      source_page: "simulator",
+      entry_point: "external_cta",
+      placement: params.get("utm_content") || params.get("utm_campaign") || "unknown",
+    };
+    setScreen("sim");
+    window.scrollTo(0, 0);
+    track("sim_start", {
+      ...entryContextRef.current,
+      medium: params.get("utm_medium") || "unknown",
+      campaign: params.get("utm_campaign") || "",
+      source_page: "simulator",
+    });
+    track("sim_open", { ...entryContextRef.current, source_page: "simulator" });
+    window.history.replaceState({}, "", window.location.pathname + window.location.hash);
+    getVision().catch(() => {});
+  }, []);
 
   /* スクロール演出: .hm-reveal が画面内に入ったら is-visible を付与(1要素1回)。
      OS側で「視差効果を減らす」が有効な場合はアニメーションせず即表示する。 */
@@ -790,7 +858,9 @@ export default function WhiteningSimulator() {
         setEditMode("area");
         setMouth({ cx: 0.5, cy: 0.62, r: 0.16 });
         setImgSrc(reader.result);
-        track("sim_photo_loaded", { source: "upload" });
+        track("sim_photo_loaded", {
+          ...entryContextRef.current, input_method: "upload", source_page: "simulator",
+        });
         autoDetectMouth(img);
       };
       img.onerror = () =>
@@ -802,6 +872,9 @@ export default function WhiteningSimulator() {
 
   const onFile = (e) => {
     const f = e.target.files && e.target.files[0];
+    if (f) track("sim_photo_selected", {
+      ...entryContextRef.current, input_method: "upload", source_page: "simulator",
+    });
     loadFile(f);
     e.target.value = ""; // 同じファイルの再選択を許可
   };
@@ -853,7 +926,12 @@ export default function WhiteningSimulator() {
       setMouth({ cx: 0.5, cy: 0.62, r: 0.16 });
       setImgSrc(url);
       stopCamera();
-      track("sim_photo_loaded", { source: "camera" });
+      track("sim_photo_selected", {
+        ...entryContextRef.current, input_method: "camera", source_page: "simulator",
+      });
+      track("sim_photo_loaded", {
+        ...entryContextRef.current, input_method: "camera", source_page: "simulator",
+      });
       autoDetectMouth(img);
     };
     img.src = url;
@@ -922,10 +1000,16 @@ export default function WhiteningSimulator() {
     track("sim_goal", { goal: goalName, method: target.id, sessions: need });
   };
 
-  const goSim = () => {
+  const goSim = (placement) => {
+    entryContextRef.current = {
+      source_page: "simulator",
+      entry_point: "onsite_cta",
+      placement,
+    };
     setScreen("sim");
     window.scrollTo(0, 0);
-    track("sim_open");
+    track("sim_start", { ...entryContextRef.current, source_page: "simulator" });
+    track("sim_open", { ...entryContextRef.current, source_page: "simulator" });
     getVision().catch(() => {}); // 写真選択中にモデルを先読み(ウォームアップ)
   };
 
@@ -1005,7 +1089,7 @@ export default function WhiteningSimulator() {
             <a href="https://column.hamulation.com/" style={{ fontSize: 11, fontWeight: 700, color: C.goldDark, textDecoration: "none", background: C.card, border: `1px solid ${C.goldLight}`, borderRadius: 999, padding: "7px 14px", whiteSpace: "nowrap" }}>📖 コラム</a>
             {screen === "home" && (
               <button
-                onClick={goSim}
+                onClick={() => goSim("header_cta")}
                 style={{ fontSize: 11, background: C.champagne, color: C.goldDark, borderRadius: 999, padding: "7px 14px", fontWeight: 700, border: `1px solid ${C.goldLight}` }}
               >
                 ✨ 無料で試す
@@ -1034,7 +1118,7 @@ export default function WhiteningSimulator() {
                 </p>
                 <button
                   className="hm-cta"
-                  onClick={goSim}
+                  onClick={() => goSim("hero_cta")}
                   style={{
                     width: "100%", maxWidth: 400, border: "none",
                     background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`,
@@ -1083,7 +1167,7 @@ export default function WhiteningSimulator() {
                 <h2 className="hm-underline hm-reveal" style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 600, letterSpacing: 1, margin: 0 }}>使い方は、3ステップ</h2>
                 <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 2, color: C.goldDark }}>HOW TO USE</span>
                 <button
-                  onClick={goSim}
+                  onClick={() => goSim("howto_cta")}
                   style={{ marginLeft: "auto", border: `1.5px solid ${C.gold}`, background: C.card, color: C.goldDark, fontWeight: 900, fontSize: 12, borderRadius: 999, padding: "8px 20px", letterSpacing: 1 }}
                 >
                   さっそく試す →
@@ -1091,7 +1175,7 @@ export default function WhiteningSimulator() {
               </div>
               <div className="hm-steps">
                 {HOWTO_STEPS.map((s, i) => (
-                  <div key={s.title} className="hm-step-card hm-reveal" onClick={goSim} style={{ background: C.card, borderRadius: 16, overflow: "hidden", border: `1px solid ${C.line}`, cursor: "pointer", transitionDelay: `${i * 90}ms` }}>
+                  <div key={s.title} className="hm-step-card hm-reveal" onClick={() => goSim(`howto_step_${i + 1}`)} style={{ background: C.card, borderRadius: 16, overflow: "hidden", border: `1px solid ${C.line}`, cursor: "pointer", transitionDelay: `${i * 90}ms` }}>
                     <img src={s.img} alt={`STEP${i + 1} ${s.title}`} style={{ width: "100%", display: "block", aspectRatio: "16 / 9", objectFit: "cover" }} loading="lazy" />
                     <div style={{ padding: "10px 14px 14px", display: "flex", gap: 10, alignItems: "flex-start" }}>
                       <div style={{ flexShrink: 0, width: 26, height: 26, borderRadius: 999, background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", fontSize: 12, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2 }}>{i + 1}</div>
@@ -1110,7 +1194,10 @@ export default function WhiteningSimulator() {
           <div id="hm-clinics" className="hm-container" style={{ paddingTop: 26, paddingBottom: 40 }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
               <h2 style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 600, letterSpacing: 1, margin: 0 }}>ホワイトニング対応クリニック</h2>
-              <span style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: 1.5, color: C.sub, border: `1px solid ${C.line}`, borderRadius: 6, padding: "2px 7px" }}>PR</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: "4px 10px", margin: "-4px 0 14px", padding: "9px 11px", border: `1px solid ${C.line}`, borderRadius: 10, background: C.champagne, color: C.ink, fontSize: 12, fontWeight: 700, lineHeight: 1.65 }}>
+              <span>広告（アフィリエイト広告を含みます）</span>
+              <a href="/editorial-policy.html" onClick={() => trackEditorialPolicyClick("clinic_list_disclosure")} style={{ color: C.goldDark, fontWeight: 900, textUnderlineOffset: 2 }}>掲載・比較ポリシー</a>
             </div>
 
             {simIntent && (
@@ -1169,7 +1256,7 @@ export default function WhiteningSimulator() {
                               href={c.href}
                               target="_blank"
                               rel="nofollow sponsored noopener"
-                              onClick={(e) => { e.stopPropagation(); trackOutboundOffer(c, "clinic_list", { method: g.key }); }}
+                              onClick={(e) => { e.stopPropagation(); trackClinicListClick(c, g.key); }}
                               style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", fontWeight: 900, fontSize: 12.5, borderRadius: 999, padding: "10px 20px", textDecoration: "none", boxShadow: "0 4px 12px rgba(192,145,60,0.3)" }}
                             >
                               {g.key === "self" ? "公式サイトを見る →" : "公式サイトで予約 →"}
@@ -1225,7 +1312,26 @@ export default function WhiteningSimulator() {
                   <div
                     key={g.id}
                     className="hm-reveal hm-clickcard"
-                    onClick={() => { track("to_price_page", { position: "method_guide", method: g.id }); window.location.href = "/whitening/price.html#" + g.id; }}
+                    onClick={() => {
+                      if (g.id === "home") {
+                        track("to_home_price", {
+                          source_page: "simulator",
+                          placement: "method_guide",
+                          method: "home",
+                          target_page: "home_price",
+                        });
+                        window.location.href = "/whitening/home-price.html";
+                        return;
+                      }
+
+                      track("to_price_page", {
+                        source_page: "simulator",
+                        placement: "method_guide",
+                        method: g.id,
+                        target_page: "price",
+                      });
+                      window.location.href = "/whitening/price.html#" + g.id;
+                    }}
                     style={{ background: C.card, borderRadius: 16, border: `1px solid ${C.line}`, padding: "18px 18px 16px", transitionDelay: `${gi * 90}ms`, cursor: "pointer" }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
@@ -1277,7 +1383,7 @@ export default function WhiteningSimulator() {
             <div style={{ marginTop: 24, textAlign: "center" }}>
               <button
                 className="hm-cta"
-                onClick={goSim}
+                onClick={() => goSim("faq_cta")}
                 style={{ border: "none", background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", fontWeight: 900, fontSize: 14, borderRadius: 999, padding: "15px 40px", letterSpacing: 1, boxShadow: "0 8px 24px rgba(192,145,60,0.35)" }}
               >
                 ✨ 無料でシミュレーションする →
@@ -1359,7 +1465,12 @@ export default function WhiteningSimulator() {
                     style={{ width: "100%", accentColor: C.gold }}
                   />
                   <button
-                    onClick={() => { setEditMode("compare"); track("sim_compare", { method, sessions }); }}
+                    onClick={() => {
+                      setEditMode("compare");
+                      track("sim_compare", {
+                        ...entryContextRef.current, method, sessions, source_page: "simulator",
+                      });
+                    }}
                     style={{ width: "100%", marginTop: 10, background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, border: "none", color: "#fff", fontWeight: 900, fontSize: 14, borderRadius: 12, padding: "13px 0" }}
                   >
                     ② この範囲でシミュレーション開始
@@ -1422,17 +1533,43 @@ export default function WhiteningSimulator() {
                       </button>
                     ))}
                   </div>
+                  <div style={{ marginTop: 15 }}>
+                    <div style={{ fontSize: 13, fontWeight: 900, marginBottom: 8 }}>通いやすいエリアはありますか？</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+                      {[
+                        { key: "ginza", label: "東京・銀座に行ける" },
+                        { key: "other_or_undecided", label: "その他のエリア／未定" },
+                      ].map((option) => (
+                        <button
+                          key={option.key}
+                          onClick={() => selectAreaPreference(option.key)}
+                          style={{
+                            minHeight: 50, borderRadius: 12, padding: "9px 8px",
+                            border: areaPreference === option.key ? `2px solid ${C.gold}` : `1.5px solid ${C.line}`,
+                            background: areaPreference === option.key ? C.champagne : C.card,
+                            color: areaPreference === option.key ? C.goldDark : C.ink,
+                            fontSize: 12, fontWeight: 900, lineHeight: 1.45,
+                          }}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* ---------- Phase1: 結果直下オファーカード(この白さの受け方を案内) ---------- */}
+              {/* ---------- 結果直下オファー: 主推奨1件 + 代替2件 ---------- */}
               {editMode === "compare" && (
                 <div ref={offerCardRef} style={{ marginTop: 18 }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
                     <h3 style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 600, margin: 0 }}>
-                      {recMatched ? "この白さを目指すなら" : "もっと白さを目指したいなら"}
+                      {primaryHeading}
                     </h3>
-                    <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.2, color: C.sub, border: `1px solid ${C.line}`, borderRadius: 6, padding: "1px 6px" }}>PR</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: "4px 10px", margin: "0 0 10px", padding: "8px 10px", border: `1px solid ${C.line}`, borderRadius: 10, background: C.champagne, color: C.ink, fontSize: 11.5, fontWeight: 700, lineHeight: 1.65 }}>
+                    <span>広告（アフィリエイト広告を含みます）</span>
+                    <a href="/editorial-policy.html" onClick={() => trackEditorialPolicyClick("result_offer_disclosure")} style={{ color: C.goldDark, fontWeight: 900, textUnderlineOffset: 2 }}>掲載・比較ポリシー</a>
                   </div>
                   {!recMatched && (
                     <p style={{ fontSize: 11.5, color: C.ink, lineHeight: 1.8, margin: "0 0 10px" }}>
@@ -1445,11 +1582,14 @@ export default function WhiteningSimulator() {
                     </p>
                   )}
                   <div style={{ background: C.card, borderRadius: 18, padding: 18, border: `2px solid ${C.gold}`, boxShadow: "0 6px 18px rgba(192,145,60,0.15)" }}>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 900, letterSpacing: 0.9, color: C.goldDark, background: C.champagne, borderRadius: 99, padding: "4px 8px", marginBottom: 10 }}>
+                      BEST MATCH <span aria-hidden>✦</span>
+                    </div>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                       <div>
                         <div style={{ fontSize: 15, fontWeight: 700 }}>{recommendedOffer.name}</div>
                         <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>{recommendedOffer.area}</div>
-                        <div style={{ fontSize: 12, color: C.goldDark, fontWeight: 700, marginTop: 6, lineHeight: 1.6 }}>{recommendedOffer.reason}</div>
+                        <div style={{ fontSize: 12, color: C.goldDark, fontWeight: 700, marginTop: 6, lineHeight: 1.6 }}>{primaryRecommendationText}</div>
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 700, color: C.goldDark, background: C.champagne, border: `1px solid ${C.line}`, borderRadius: 8, padding: "4px 8px", height: "fit-content", whiteSpace: "nowrap" }}>{recommendedOffer.tag}</div>
                     </div>
@@ -1458,14 +1598,62 @@ export default function WhiteningSimulator() {
                       href={recommendedOffer.href}
                       target="_blank"
                       rel="nofollow sponsored noopener"
-                      onClick={() => trackOutboundOffer(recommendedOffer, "result_primary")}
+                      onClick={() => trackOfferClick(recommendedOffer, "result_primary")}
                       style={{ display: "block", textAlign: "center", marginTop: 12, background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", fontWeight: 900, fontSize: 14, borderRadius: 14, padding: "14px 0", textDecoration: "none", boxShadow: "0 4px 12px rgba(192,145,60,0.3)" }}
                     >
-                      {recommendedOffer.cta}
+                      {primaryCta}
                     </a>
                     <div style={{ fontSize: 10, color: C.sub, marginTop: 8, textAlign: "center" }}>公式サイトへ移動します・{recommendedOffer.verifiedAt}確認</div>
                     <img src={recommendedOffer.pixel} alt="" width="1" height="1" style={{ border: 0, position: "absolute", opacity: 0 }} />
                   </div>
+
+                  <div style={{ marginTop: 16 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
+                      <h4 style={{ fontSize: 13, fontWeight: 900, margin: 0 }}>ほかに検討できる候補</h4>
+                      <span style={{ fontSize: 10, color: C.sub }}>条件の近い2件</span>
+                    </div>
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {alternativeOffers.map((offer, index) => {
+                        const matchesMethod = offer.methods.includes(method);
+                        return (
+                          <a
+                            key={offer.offerId}
+                            href={offer.href}
+                            target="_blank"
+                            rel="nofollow sponsored noopener"
+                            onClick={() => trackOfferClick(offer, `result_alternative_${index + 1}`, index + 1)}
+                            style={{ display: "block", position: "relative", background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: "13px 14px", color: C.ink, textDecoration: "none" }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                  <span style={{ fontSize: 13, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{offer.name}</span>
+                                  <span style={{ flex: "0 0 auto", fontSize: 9.5, fontWeight: 700, color: C.goldDark, background: C.champagne, borderRadius: 6, padding: "2px 6px" }}>{offer.tag}</span>
+                                </div>
+                                <div style={{ fontSize: 10.5, color: C.sub, marginTop: 4 }}>{offer.area}</div>
+                              </div>
+                              <span aria-hidden style={{ flex: "0 0 auto", color: C.goldDark, fontSize: 17 }}>›</span>
+                            </div>
+                            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "3px 8px", marginTop: 9 }}>
+                              <span style={{ fontSize: 12.5, color: C.goldDark, fontWeight: 900 }}>{offer.price}</span>
+                              <span style={{ fontSize: 10.5, color: C.sub }}>{matchesMethod ? "選んだ方式に近い候補" : "別の選択肢として"}</span>
+                            </div>
+                            <img src={offer.pixel} alt="" width="1" height="1" style={{ border: 0, position: "absolute", opacity: 0 }} />
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {method === "home" && (
+                    <a
+                      href="/whitening/home-price.html"
+                      onClick={() => track("to_price_page", { source_page: "simulator", placement: "result_home_price", target_page: "home_price", method, timing })}
+                      style={{ display: "block", marginTop: 14, padding: "13px 14px", border: `1px solid ${C.goldLight}`, borderRadius: 14, background: C.champagne, color: C.ink, textDecoration: "none" }}
+                    >
+                      <span style={{ display: "block", color: C.goldDark, fontSize: 9.5, fontWeight: 900, letterSpacing: .9 }}>HOME WHITENING COST GUIDE</span>
+                      <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 4, fontSize: 12.5, fontWeight: 900 }}><span>ホームホワイトニングの費用・総額の確認ポイントを見る</span><span aria-hidden style={{ color: C.goldDark, fontSize: 17 }}>›</span></span>
+                    </a>
+                  )}
                   <div style={{ fontSize: 9.5, color: C.sub, marginTop: 8, lineHeight: 1.6 }}>
                     ※当サイトはアフィリエイト広告を利用しています。最新の料金・対象院は公式サイトをご確認ください。
                   </div>
@@ -1624,10 +1812,10 @@ export default function WhiteningSimulator() {
             href={recommendedOffer.href}
             target="_blank"
             rel="nofollow sponsored noopener"
-            onClick={() => trackOutboundOffer(recommendedOffer, "result_sticky")}
+            onClick={() => trackOfferClick(recommendedOffer, "result_sticky")}
             style={{ display: "block", maxWidth: 560, margin: "0 auto", textAlign: "center", background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", fontWeight: 900, fontSize: 14, borderRadius: 14, padding: "13px 0", textDecoration: "none", boxShadow: "0 4px 12px rgba(192,145,60,0.3)" }}
           >
-            {recommendedOffer.stickyCta} →
+            {primaryStickyCta}
           </a>
         </div>
       )}
@@ -1641,6 +1829,7 @@ export default function WhiteningSimulator() {
             <a href="https://column.hamulation.com/" style={{ color: C.goldDark, fontWeight: 700 }}>コラム</a>
             <a href="/privacy.html" style={{ color: C.sub }}>プライバシーポリシー</a>
             <a href="/terms.html" style={{ color: C.sub }}>免責事項</a>
+            <a href="/editorial-policy.html" onClick={() => trackEditorialPolicyClick("footer")} style={{ color: C.sub }}>掲載・比較ポリシー</a>
             <a href="/about.html" style={{ color: C.sub }}>運営者情報</a>
           </div>
           <div style={{ fontSize: 10, color: C.sub, marginTop: 10 }}>© 2026 ハミュレーション</div>
