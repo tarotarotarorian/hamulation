@@ -21,6 +21,20 @@
     })(window, document, "clarity", "script", "xkyf1au7bm");
   </script>
   <script>
+    function getWhiteMeisterPromptOrigin() {
+      var key = "hm:clinic-prompt:origin";
+      var params = new URLSearchParams(window.location.search);
+      var allowed = params.get("hm_from") === "result_engagement_prompt" && params.get("hm_prompt") === "clinic_prompt_v1";
+      var value = allowed ? { origin_placement: "result_engagement_prompt", prompt_version: "clinic_prompt_v1" } : null;
+      try {
+        if (value) window.sessionStorage.setItem(key, JSON.stringify(value));
+        if (!value) {
+          var stored = JSON.parse(window.sessionStorage.getItem(key) || "null");
+          if (stored && stored.origin_placement === "result_engagement_prompt" && stored.prompt_version === "clinic_prompt_v1") return stored;
+        }
+      } catch (_) { /* ストレージが使えない場合は通常の計測だけを行う */ }
+      return value;
+    }
     function trackWhiteMeisterAffiliate(placement) {
       var payload = {
         clinic: "ホワイトマイスター",
@@ -34,6 +48,11 @@
         timing: "not_applicable",
         area_group: "ginza"
       };
+      var promptOrigin = getWhiteMeisterPromptOrigin();
+      if (promptOrigin) {
+        payload.origin_placement = promptOrigin.origin_placement;
+        payload.prompt_version = promptOrigin.prompt_version;
+      }
       if (typeof window.gtag === "function") window.gtag("event", "affiliate_click", payload);
       if (typeof window.clarity === "function") window.clarity("event", "affiliate_click");
     }

@@ -1,4 +1,25 @@
 (() => {
+  // 結果画面の案内で付与する文脈は、許可済みの固定値だけを扱う。
+  // 個人情報・写真データ・任意パラメータは引き継がない。
+  const promptOriginKey = 'hm:clinic-prompt:origin';
+  const promptOrigin = (() => {
+    const params = new URLSearchParams(window.location.search);
+    const isAllowed = params.get('hm_from') === 'result_engagement_prompt' && params.get('hm_prompt') === 'clinic_prompt_v1';
+    const value = isAllowed ? { origin_placement: 'result_engagement_prompt', prompt_version: 'clinic_prompt_v1' } : null;
+    try {
+      if (value) window.sessionStorage.setItem(promptOriginKey, JSON.stringify(value));
+      if (!value) {
+        const stored = JSON.parse(window.sessionStorage.getItem(promptOriginKey) || 'null');
+        if (stored && stored.origin_placement === 'result_engagement_prompt' && stored.prompt_version === 'clinic_prompt_v1') return stored;
+      }
+    } catch (_) { /* ストレージが使えない場合は文脈なしで通常計測する */ }
+    return value;
+  })();
+  const promptOriginPayload = () => promptOrigin ? {
+    origin_placement: promptOrigin.origin_placement,
+    prompt_version: promptOrigin.prompt_version
+  } : {};
+
   const informationDates = {
     '/clinic/haku-whitening.html': '2026年09月22日',
     '/clinic/lulu-white.html': '2026年09月22日',
@@ -78,7 +99,8 @@
       clinic: link.dataset.clinic || 'unknown',
       offer_id: link.dataset.offerId || 'unknown',
       source_page: 'clinic_detail',
-      placement: link.dataset.placement || 'unknown'
+      placement: link.dataset.placement || 'unknown',
+      ...promptOriginPayload()
     };
 
     if (typeof window.gtag === 'function') window.gtag('event', 'affiliate_click', payload);
