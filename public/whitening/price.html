@@ -318,6 +318,36 @@
   <footer class="footer"><div class="container"><nav class="footer-links"><a href="/">シミュレーター</a><a href="https://column.hamulation.com/">コラム</a><a href="/editorial-policy.html" onclick="gtag('event','editorial_policy_click',{source_page:'price',placement:'footer'})">掲載・比較ポリシー</a><a href="/privacy.html">プライバシーポリシー</a><a href="/terms.html">免責事項</a><a href="/about.html">運営者情報</a></nav><p>※本ページはアフィリエイト広告を利用しています。料金・条件は変更される場合があります。申込み前に各公式サイトでご確認ください。</p><p>&copy; 2026 ハミュレーション</p></div></footer>
   <script>
     (() => {
+      // 結果画面の案内から来た時だけ、許可した2項目を同一タブ内で引き継ぐ。
+      // 任意のURL・UTM・画像データは保存も転送もしない。
+      const promptOriginKey = 'hm:clinic-prompt:origin';
+      const promptOrigin = (() => {
+        const params = new URLSearchParams(window.location.search);
+        const isAllowed = params.get('hm_from') === 'result_engagement_prompt' && params.get('hm_prompt') === 'clinic_prompt_v1';
+        const value = isAllowed ? { origin_placement: 'result_engagement_prompt', prompt_version: 'clinic_prompt_v1' } : null;
+        try {
+          if (value) window.sessionStorage.setItem(promptOriginKey, JSON.stringify(value));
+          if (!value) {
+            const stored = JSON.parse(window.sessionStorage.getItem(promptOriginKey) || 'null');
+            if (stored && stored.origin_placement === 'result_engagement_prompt' && stored.prompt_version === 'clinic_prompt_v1') return stored;
+          }
+        } catch (_) { /* ストレージが使えない場合も通常の比較ページとして動作 */ }
+        return value;
+      })();
+      const withPromptOrigin = (href) => {
+        if (!promptOrigin) return href;
+        try {
+          const url = new URL(href, window.location.origin);
+          if (url.origin !== window.location.origin) return href;
+          url.searchParams.set('hm_from', 'result_engagement_prompt');
+          url.searchParams.set('hm_prompt', 'clinic_prompt_v1');
+          return url.pathname + url.search + url.hash;
+        } catch (_) { return href; }
+      };
+      const promptOriginPayload = () => promptOrigin ? {
+        origin_placement: promptOrigin.origin_placement,
+        prompt_version: promptOrigin.prompt_version
+      } : {};
       const filters = document.querySelectorAll('.filter');
       const plans = document.querySelectorAll('.plan');
       const activateFilter = (type) => {
@@ -330,6 +360,9 @@
       };
       filters.forEach((filter) => filter.addEventListener('click', () => activateFilter(filter.dataset.filter)));
       document.querySelectorAll('[data-activate-filter]').forEach((link) => link.addEventListener('click', () => activateFilter(link.dataset.activateFilter)));
+      document.querySelectorAll('[data-clinic-detail]').forEach((link) => {
+        link.href = withPromptOrigin(link.getAttribute('href'));
+      });
       const verifiedSources = {
         'スターホワイトニング': { date: '2026年10月31日', label: '公式料金・返金保証', url: 'https://www.starwhitening.jp/' },
         'YCホワイトニング': { date: '2026年10月31日', label: '公式料金・定額制', url: 'https://ycwhitening.jp/' },
@@ -354,12 +387,12 @@
         if (detailLink) {
           const plan = detailLink.closest('.plan');
           const clinic = plan ? plan.querySelector('h3').textContent : detailLink.querySelector('.area-copy span')?.textContent || 'area_card';
-          if (typeof window.gtag === 'function') window.gtag('event', 'clinic_detail_view', { clinic, source_page: 'price', placement: plan ? 'service_card' : 'area_card' });
+          if (typeof window.gtag === 'function') window.gtag('event', 'clinic_detail_view', { clinic, source_page: 'price', placement: plan ? 'service_card' : 'area_card', ...promptOriginPayload() });
           if (typeof window.clarity === 'function') window.clarity('event', 'clinic_detail_view');
         }
         const link = event.target.closest('[data-affiliate-cta]');
         if (!link) return;
-        const payload = { clinic: link.dataset.clinic || 'unknown', offer_id: link.dataset.offerId || 'unknown', source_page: 'price', placement: link.dataset.placement || 'unknown' };
+        const payload = { clinic: link.dataset.clinic || 'unknown', offer_id: link.dataset.offerId || 'unknown', source_page: 'price', placement: link.dataset.placement || 'unknown', ...promptOriginPayload() };
         if (typeof window.gtag === 'function') window.gtag('event', 'affiliate_click', payload);
         if (typeof window.clarity === 'function') window.clarity('event', 'affiliate_click');
       });
