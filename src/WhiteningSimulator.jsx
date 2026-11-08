@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 
 /* ------------------------------------------------------------------
    ハミュレーション — ホワイトニングシミュレーター (Phase 0 / v4)
@@ -29,6 +29,43 @@ const C = {
 };
 
 const SERIF = "'Shippori Mincho','Hiragino Mincho ProN',serif";
+const FUNNEL_VERSION = "2026-11-v1";
+
+/* ------------------------------------------------------------------
+   結果画面の利用に応じた医院・料金案内。
+   enabled を false にすると、この案内用の計測・タイマー・UIだけを停止し、
+   既存の結果カードと下部CTAに戻せる。
+   ------------------------------------------------------------------ */
+const CLINIC_PROMPT_CONFIG = Object.freeze({
+  enabled: true,
+  version: "clinic_prompt_v1",
+  triggerRule: "t20_i3",
+  activeResultSeconds: 20,
+  meaningfulInteractions: 3,
+  idleDelayMs: 1500,
+  storagePrefix: "hm:clinic-prompt",
+  originPlacement: "result_engagement_prompt",
+});
+
+const promptStorageKey = (name) => `${CLINIC_PROMPT_CONFIG.storagePrefix}:${name}`;
+const promptNow = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
+
+// 写真や入力値は保存せず、同一タブでの表示・行動済み状態だけを保持する。
+function getPromptSessionValue(name) {
+  try {
+    return typeof window !== "undefined" ? window.sessionStorage.getItem(promptStorageKey(name)) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function setPromptSessionValue(name, value = "1") {
+  try {
+    if (typeof window !== "undefined") window.sessionStorage.setItem(promptStorageKey(name), value);
+  } catch (_) {
+    // ストレージを使えない環境では、コンポーネント内のrefで同一表示中の重複を防ぐ。
+  }
+}
 
 /* ファイル入力を視覚的に隠すスタイル。⚠️ display:none にしないこと。
    display:none だと一部端末で label 経由のタップが効かず、写真選択に進めない事故が起きる。 */
@@ -443,6 +480,12 @@ export default function WhiteningSimulator() {
   const [offerCardVisible, setOfferCardVisible] = useState(true); // 結果オファーカードが表示域にあるか(固定CTA制御)
   const [timing, setTiming] = useState(null); // Phase2-1: いつまでに白くしたいか(2w | 1-3m | undecided)
   const [areaPreference, setAreaPreference] = useState(null); // ginza | other_or_undecided
+  const [clinicPromptVisible, setClinicPromptVisible] = useState(false);
+  const [clinicPromptSuppressed, setClinicPromptSuppressed] = useState(
+    () => CLINIC_PROMPT_CONFIG.enabled && Boolean(getPromptSessionValue("shown") || getPromptSessionValue("acted"))
+  );
+  const [clinicPromptInline, setClinicPromptInline] = useState(false);
+  const [, setPromptEngagement] = useState({ activeSeconds: 0, interactionCount: 0, eligible: false });
 
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
@@ -454,7 +497,19 @@ export default function WhiteningSimulator() {
   const resultViewedRef = useRef(false); // sim_result_view を1セッション1回に
   const impressedOfferRef = useRef(null); // 主推奨の offer_impression をオファーごと1回に
   const offerCardRef = useRef(null); // 結果オファーカードの可視監視用
-  const campaignStartedRef = useRef(false); // UTM付き導線での二重起動を防止
+  const autoEntryStartedRef = useRef(false); // URLパラメータ付き導線での二重起動を防止
+  const simEntryTrackedRef = useRef(false); // sim_entry / 旧互換イベントを1ページ表示につき1回に
+  const splitRef = useRef(split);
+  const splitDragStartRef = useRef(split);
+  const lastCompareDragRef = useRef(0);
+  const clinicPromptRef = useRef({ activeMs: 0, interactionCount: 0, eligible: Boolean(getPromptSessionValue("eligible")), lastActiveAt: null });
+  const clinicPromptEligibleTrackedRef = useRef(Boolean(getPromptSessionValue("eligible")));
+  const clinicPromptShownRef = useRef(Boolean(getPromptSessionValue("shown")));
+  const clinicPromptSuppressedRef = useRef(
+    CLINIC_PROMPT_CONFIG.enabled && Boolean(getPromptSessionValue("shown") || getPromptSessionValue("acted"))
+  );
+  const clinicPromptLastActivityRef = useRef(promptNow());
+  const clinicPromptOfferImpressionRef = useRef(false);
   // ファネルを流入元ごとに分解するため、シミュレーターを開いた時点の文脈を保持する。
   // URLのUTMは計測後に消すため、以降のイベントにも同じ文脈を引き継ぐ。
   const entryContextRef = useRef({
@@ -518,14 +573,19 @@ export default function WhiteningSimulator() {
     offer_area_group: offer.areaGroup,
     variant: OFFER_VARIANT,
     source_page: "simulator",
+    entry_point: entryContextRef.current.entry_point,
+    funnel_version: FUNNEL_VERSION,
   });
   const trackOfferClick = (offer, offerPlacement, alternativeRank = null) => {
+    // 既存の送客CTAを選んだタブでは、新しい案内を重ねない。
+    suppressClinicPrompt("continue_simulation");
     const params = offerParams(offer, offerPlacement, alternativeRank);
     // 既存のABテスト用イベントを残しつつ、ページ横断の送客KPIも揃える。
     track("offer_click", params);
     track("affiliate_click", { ...entryContextRef.current, ...params, source_page: "simulator" });
   };
   const trackClinicListClick = (offer, groupMethod) => {
+    suppressClinicPrompt("continue_simulation");
     const params = offerParams(offer, "clinic_list");
     track("affiliate_click", {
       ...entryContextRef.current,
@@ -541,13 +601,17 @@ export default function WhiteningSimulator() {
      歯科医院のオフィスへ寄せる。1〜3ヶ月はホームも案内(※ホーム案件は未提携のため
      空振りリンクは作らず、当面はオフィス案件を提示しつつ文言で補足)。 */
   const selectTiming = (t) => {
+    const didChange = timing !== t;
     setTiming(t);
     const nextMethod = t === "2w" && method !== "office" ? "office" : method;
     if (nextMethod !== method) setMethod(nextMethod);
+    if (didChange) notePromptInteraction();
     track("whiteness_timing_selected", { timing: t, method: nextMethod, variant: OFFER_VARIANT, source_page: "simulator" });
   };
   const selectAreaPreference = (nextArea) => {
+    const didChange = areaPreference !== nextArea;
     setAreaPreference(nextArea);
+    if (didChange) notePromptInteraction();
     track("whiteness_area_selected", {
       area_group: nextArea,
       timing,
@@ -555,6 +619,78 @@ export default function WhiteningSimulator() {
       variant: OFFER_VARIANT,
       source_page: "simulator",
     });
+  };
+
+  /* ---------- 結果画面の利用に応じた医院・料金案内 ----------
+     写真・シェード等は保存も送信もしない。ここで保持するのは、同一タブで
+     すでに案内を表示/操作したか、という最小限の状態だけ。 */
+  const promptAreaGroup = areaPreference === "ginza"
+    ? "ginza"
+    : areaPreference === "other_or_undecided" ? "other_or_undecided" : "unknown";
+  const promptIsConcrete = Boolean(isGinzaUrgent && whiteMeisterOffer);
+  const promptOffer = promptIsConcrete ? whiteMeisterOffer : null;
+  const promptDestination = promptOffer
+    ? `${promptOffer.page}?hm_from=result_engagement_prompt&hm_prompt=${CLINIC_PROMPT_CONFIG.version}`
+    : `/whitening/price.html?hm_from=result_engagement_prompt&hm_prompt=${CLINIC_PROMPT_CONFIG.version}#locations`;
+  const promptPayload = (extra = {}) => ({
+    source_page: "simulator",
+    placement: CLINIC_PROMPT_CONFIG.originPlacement,
+    entry_point: entryContextRef.current.entry_point,
+    funnel_version: FUNNEL_VERSION,
+    prompt_version: CLINIC_PROMPT_CONFIG.version,
+    trigger_rule: CLINIC_PROMPT_CONFIG.triggerRule,
+    interaction_count: clinicPromptRef.current.interactionCount,
+    active_result_seconds: Math.floor(clinicPromptRef.current.activeMs / 1000),
+    method: method || "unknown",
+    timing: timing || "unknown",
+    area_group: promptAreaGroup,
+    ...(promptOffer ? { offer_id: promptOffer.offerId } : {}),
+    ...extra,
+  });
+  const suppressClinicPrompt = (reason, { trackDismiss = false } = {}) => {
+    if (!CLINIC_PROMPT_CONFIG.enabled) return;
+    const wasVisible = clinicPromptVisible;
+    clinicPromptSuppressedRef.current = true;
+    setPromptSessionValue("acted");
+    setClinicPromptSuppressed(true);
+    setClinicPromptVisible(false);
+    if (trackDismiss && wasVisible) {
+      track("clinic_prompt_dismiss", promptPayload({ close_reason: reason }));
+      if (typeof window !== "undefined" && typeof window.clarity === "function") window.clarity("event", "clinic_prompt_dismiss");
+    }
+  };
+  const notePromptInteraction = () => {
+    if (!CLINIC_PROMPT_CONFIG.enabled || screen !== "sim" || editMode !== "compare" || !imgSrc || cameraOn || detecting || imgStatus) return;
+    const state = clinicPromptRef.current;
+    state.interactionCount += 1;
+    clinicPromptLastActivityRef.current = promptNow();
+    setPromptEngagement({ activeSeconds: Math.floor(state.activeMs / 1000), interactionCount: state.interactionCount, eligible: state.eligible });
+  };
+  const holdClinicPrompt = () => {
+    if (CLINIC_PROMPT_CONFIG.enabled) clinicPromptLastActivityRef.current = promptNow();
+  };
+  const resetPromptForImage = () => {
+    if (!CLINIC_PROMPT_CONFIG.enabled) return;
+    clinicPromptRef.current = { activeMs: 0, interactionCount: 0, eligible: false, lastActiveAt: null };
+    clinicPromptLastActivityRef.current = promptNow();
+    splitRef.current = 0.5;
+    splitDragStartRef.current = 0.5;
+    setSplit(0.5);
+    setClinicPromptVisible(false);
+    setPromptEngagement({ activeSeconds: 0, interactionCount: 0, eligible: false });
+  };
+  const closeClinicPrompt = () => suppressClinicPrompt("close_button", { trackDismiss: true });
+  const continueSimulationFromPrompt = () => suppressClinicPrompt("continue_simulation", { trackDismiss: true });
+  const selectPromptDestination = () => {
+    track("clinic_prompt_click", promptPayload({
+      destination_type: promptOffer ? "clinic_detail" : "price_area_compare",
+      click_target: "primary",
+    }));
+    if (typeof window !== "undefined" && typeof window.clarity === "function") window.clarity("event", "clinic_prompt_click");
+    clinicPromptSuppressedRef.current = true;
+    setPromptSessionValue("acted");
+    setClinicPromptSuppressed(true);
+    setClinicPromptVisible(false);
   };
   const timingNote =
     timing === "2w" ? "お急ぎなら、少ない回数で変化を感じやすい歯科医院のオフィスホワイトニングがおすすめです。"
@@ -640,11 +776,13 @@ export default function WhiteningSimulator() {
     variant: OFFER_VARIANT, source_page: "simulator",
   });
   const saveResultImage = () => {
+    holdClinicPrompt();
     const canvas = composeShareCanvas();
     if (!canvas) return;
     canvas.toBlob((blob) => { if (!blob) return; downloadCanvas(blob); shareTrack("result_save"); }, "image/png");
   };
   const shareResultImage = () => {
+    holdClinicPrompt();
     const canvas = composeShareCanvas();
     if (!canvas) return;
     canvas.toBlob(async (blob) => {
@@ -670,35 +808,132 @@ export default function WhiteningSimulator() {
         method, treatment_count: sessions,
         shade_before: SHADES[startShade].name, shade_after: SHADES[shadeIdx].name,
         variant: OFFER_VARIANT, source_page: "simulator",
+        funnel_version: FUNNEL_VERSION,
       });
     }
   }, [screen, editMode, imgSrc]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // コラム・料金ページの「シミュレーションする」導線は、着地後にもう一度CTAを
-  // 押させず、画像選択画面へ直接案内する。UTMは計測後にURLから取り除く。
+  // 結果画面を実際に見ている時間だけを合算し、しきい値を満たした後も
+  // 既存オファーカードが見えている間は案内を出さない。スクロール直後・ドラッグ中も保留する。
   useEffect(() => {
-    if (campaignStartedRef.current || typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const source = params.get("utm_source");
-    if (!source) return;
+    if (!CLINIC_PROMPT_CONFIG.enabled) return undefined;
+    const validResult = screen === "sim" && editMode === "compare" && Boolean(imgSrc && imgRef.current)
+      && !cameraOn && !detecting && !imgStatus;
+    if (!validResult) {
+      clinicPromptRef.current.lastActiveAt = null;
+      return undefined;
+    }
 
-    campaignStartedRef.current = true;
+    const updateActivity = () => { clinicPromptLastActivityRef.current = promptNow(); };
+    const tick = () => {
+      const now = promptNow();
+      const state = clinicPromptRef.current;
+      const active = typeof document !== "undefined"
+        && document.visibilityState === "visible"
+        && (typeof document.hasFocus !== "function" || document.hasFocus());
+      if (active) {
+        if (state.lastActiveAt == null) state.lastActiveAt = now;
+        else {
+          state.activeMs += Math.max(0, now - state.lastActiveAt);
+          state.lastActiveAt = now;
+        }
+      } else {
+        state.lastActiveAt = now;
+        return;
+      }
+
+      const idleEnough = now - clinicPromptLastActivityRef.current >= CLINIC_PROMPT_CONFIG.idleDelayMs;
+      const meetsThreshold = state.activeMs >= CLINIC_PROMPT_CONFIG.activeResultSeconds * 1000
+        && state.interactionCount >= CLINIC_PROMPT_CONFIG.meaningfulInteractions && idleEnough;
+      if (meetsThreshold && !state.eligible) {
+        state.eligible = true;
+        setPromptEngagement({ activeSeconds: Math.floor(state.activeMs / 1000), interactionCount: state.interactionCount, eligible: true });
+        if (!clinicPromptEligibleTrackedRef.current) {
+          clinicPromptEligibleTrackedRef.current = true;
+          setPromptSessionValue("eligible");
+          track("clinic_prompt_eligible", promptPayload());
+        }
+      }
+
+      const mayShow = state.eligible
+        && !clinicPromptShownRef.current
+        && !clinicPromptSuppressedRef.current
+        && !clinicPromptVisible
+        && !offerCardVisible
+        && !dragRef.current
+        && idleEnough;
+      if (mayShow) {
+        const useInline = typeof window !== "undefined" && (window.innerWidth < 390 || window.innerHeight < 650);
+        clinicPromptShownRef.current = true;
+        setPromptSessionValue("shown");
+        // 表示中だけでなく、一度表示した同一タブでは既存の固定CTAも出さない。
+        clinicPromptSuppressedRef.current = true;
+        setClinicPromptSuppressed(true);
+        setClinicPromptInline(useInline);
+        setClinicPromptVisible(true);
+        track("clinic_prompt_view", promptPayload({
+          destination_type: promptOffer ? "clinic_detail" : "price_area_compare",
+        }));
+        if (typeof window !== "undefined" && typeof window.clarity === "function") window.clarity("event", "clinic_prompt_view");
+        if (promptOffer && !clinicPromptOfferImpressionRef.current) {
+          clinicPromptOfferImpressionRef.current = true;
+          track("offer_impression", offerParams(promptOffer, CLINIC_PROMPT_CONFIG.originPlacement));
+        }
+      }
+    };
+    const timer = window.setInterval(tick, 250);
+    window.addEventListener("scroll", updateActivity, { passive: true });
+    document.addEventListener("visibilitychange", updateActivity);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("scroll", updateActivity);
+      document.removeEventListener("visibilitychange", updateActivity);
+    };
+  }, [screen, editMode, imgSrc, cameraOn, detecting, imgStatus, offerCardVisible, clinicPromptVisible, method, timing, areaPreference, promptOffer]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 入口イベントはすべてここを通す。旧イベントは残しつつ、以後の分析では
+  // sim_entry を開始の基準にする。
+  const openSimulator = (context) => {
     entryContextRef.current = {
       source_page: "simulator",
-      entry_point: "external_cta",
-      placement: params.get("utm_content") || params.get("utm_campaign") || "unknown",
+      entry_point: context.entry_point,
+      placement: context.placement,
     };
     setScreen("sim");
     window.scrollTo(0, 0);
-    track("sim_start", {
-      ...entryContextRef.current,
-      medium: params.get("utm_medium") || "unknown",
-      campaign: params.get("utm_campaign") || "",
-      source_page: "simulator",
-    });
-    track("sim_open", { ...entryContextRef.current, source_page: "simulator" });
-    window.history.replaceState({}, "", window.location.pathname + window.location.hash);
-    getVision().catch(() => {});
+
+    if (!simEntryTrackedRef.current) {
+      simEntryTrackedRef.current = true;
+      const payload = { ...entryContextRef.current, funnel_version: FUNNEL_VERSION };
+      track("sim_entry", payload);
+      track("sim_start", payload); // 既存レポートとの互換性を維持
+      track("sim_open", payload); // 既存レポートとの互換性を維持
+    }
+    getVision().catch(() => {}); // 写真選択中にモデルを先読み(ウォームアップ)
+  };
+
+  // 料金ページなどからの着地後に、もう一度CTAを押させず画像選択画面へ案内する。
+  // 内部導線の hm_entry は分析後にURLから除去し、外部UTMはGA4標準の集客属性に任せる。
+  useEffect(() => {
+    if (autoEntryStartedRef.current || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const hmEntry = params.get("hm_entry");
+    const utmSource = params.get("utm_source");
+    if (!hmEntry && !utmSource) return;
+
+    autoEntryStartedRef.current = true;
+    if (hmEntry) {
+      openSimulator({ entry_point: "internal_cta", placement: hmEntry });
+    } else {
+      openSimulator({
+        entry_point: "campaign",
+        placement: params.get("utm_content") || params.get("utm_campaign") || "unknown",
+      });
+    }
+
+    ["hm_entry", "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"].forEach((key) => params.delete(key));
+    const search = params.toString();
+    window.history.replaceState({}, "", `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`);
   }, []);
 
   /* スクロール演出: .hm-reveal が画面内に入ったら is-visible を付与(1要素1回)。
@@ -852,6 +1087,7 @@ export default function WhiteningSimulator() {
     reader.onload = () => {
       const img = new Image();
       img.onload = () => {
+        resetPromptForImage();
         imgRef.current = img;
         setImgStatus("");
         stopCamera();
@@ -860,6 +1096,7 @@ export default function WhiteningSimulator() {
         setImgSrc(reader.result);
         track("sim_photo_loaded", {
           ...entryContextRef.current, input_method: "upload", source_page: "simulator",
+          funnel_version: FUNNEL_VERSION,
         });
         autoDetectMouth(img);
       };
@@ -874,6 +1111,7 @@ export default function WhiteningSimulator() {
     const f = e.target.files && e.target.files[0];
     if (f) track("sim_photo_selected", {
       ...entryContextRef.current, input_method: "upload", source_page: "simulator",
+      funnel_version: FUNNEL_VERSION,
     });
     loadFile(f);
     e.target.value = ""; // 同じファイルの再選択を許可
@@ -921,6 +1159,7 @@ export default function WhiteningSimulator() {
     const url = tmp.toDataURL("image/jpeg", 0.92);
     const img = new Image();
     img.onload = () => {
+      resetPromptForImage();
       imgRef.current = img;
       setEditMode("area");
       setMouth({ cx: 0.5, cy: 0.62, r: 0.16 });
@@ -928,9 +1167,11 @@ export default function WhiteningSimulator() {
       stopCamera();
       track("sim_photo_selected", {
         ...entryContextRef.current, input_method: "camera", source_page: "simulator",
+        funnel_version: FUNNEL_VERSION,
       });
       track("sim_photo_loaded", {
         ...entryContextRef.current, input_method: "camera", source_page: "simulator",
+        funnel_version: FUNNEL_VERSION,
       });
       autoDetectMouth(img);
     };
@@ -960,10 +1201,14 @@ export default function WhiteningSimulator() {
         cx: Math.max(0.02, Math.min(0.98, p.x + dragOffRef.current.dx)),
         cy: Math.max(0.02, Math.min(0.98, p.y + dragOffRef.current.dy)),
       }));
-    } else setSplit(p.x);
+    } else {
+      splitRef.current = p.x;
+      setSplit(p.x);
+    }
   };
   const onDown = (e) => {
     dragRef.current = true;
+    if (editMode === "compare") splitDragStartRef.current = splitRef.current;
     if (editMode === "area") {
       userMovedRef.current = true; // 手動調整が始まったら自動検出結果で上書きしない
       const canvas = canvasRef.current;
@@ -983,7 +1228,18 @@ export default function WhiteningSimulator() {
     applyPointer(e);
   };
   const onMove = (e) => { if (dragRef.current) applyPointer(e); };
-  const onUp = () => { dragRef.current = false; };
+  const onUp = () => {
+    const wasCompareDrag = dragRef.current && editMode === "compare";
+    dragRef.current = false;
+    if (wasCompareDrag && Math.abs(splitRef.current - splitDragStartRef.current) > 0.01) {
+      const now = promptNow();
+      // 一つのドラッグを mouse/touch 両方の終了イベントで二重計上しない。
+      if (now - lastCompareDragRef.current > 180) {
+        lastCompareDragRef.current = now;
+        notePromptInteraction();
+      }
+    }
+  };
 
   /* 仕上がり目標(シェードidx)から方式・回数の目安を自動セット */
   const applyGoal = (goalIdx, goalName) => {
@@ -995,22 +1251,93 @@ export default function WhiteningSimulator() {
       const cap = Math.min(raw, ((target.maxIdx ?? 6) - startShade) / 7);
       if (Math.min(target.maxIdx ?? 6, startShade + Math.round(cap * 7)) >= goalIdx) { need = n; break; }
     }
+    const didChange = target.id !== method || need !== sessions;
     setMethod(target.id);
     setSessions(need);
+    if (didChange) notePromptInteraction();
     track("sim_goal", { goal: goalName, method: target.id, sessions: need });
   };
 
+  const selectResultMethod = (nextMethod) => {
+    if (nextMethod === method) return;
+    setMethod(nextMethod);
+    notePromptInteraction();
+  };
+  const changeResultSessions = (nextSessions) => {
+    if (nextSessions === sessions) return;
+    setSessions(nextSessions);
+    notePromptInteraction();
+  };
+  const selectResultStartShade = (nextShade) => {
+    if (nextShade === startShade) return;
+    setStartShade(nextShade);
+    notePromptInteraction();
+  };
+
   const goSim = (placement) => {
-    entryContextRef.current = {
-      source_page: "simulator",
-      entry_point: "onsite_cta",
-      placement,
-    };
-    setScreen("sim");
-    window.scrollTo(0, 0);
-    track("sim_start", { ...entryContextRef.current, source_page: "simulator" });
-    track("sim_open", { ...entryContextRef.current, source_page: "simulator" });
-    getVision().catch(() => {}); // 写真選択中にモデルを先読み(ウォームアップ)
+    openSimulator({ entry_point: "home_cta", placement });
+  };
+
+  const renderClinicPrompt = (inline = false) => {
+    if (!CLINIC_PROMPT_CONFIG.enabled || !clinicPromptVisible) return null;
+    const isSelf = method === "self";
+    const title = promptOffer
+      ? "選んだ条件に近い歯科医院のご案内"
+      : isSelf ? "歯科医院でのホワイトニングも比較しますか？" : "通える歯科医院・料金を見てみませんか？";
+    const body = promptOffer
+      ? "選択中の条件に近い医院として、料金や予約前の確認事項を個別ページでご案内します。"
+      : isSelf
+        ? "セルフケアと、歯科医院で行う方式の違い・料金を、通えるエリアから確認できます。"
+        : "料金、方式、通えるエリアを並べて、候補を探せます。";
+    return (
+      <aside
+        aria-live="polite"
+        aria-label="歯科医院・料金のご案内"
+        style={{
+          ...(inline ? { marginTop: 18 } : { position: "fixed", left: 12, right: 12, bottom: "calc(12px + env(safe-area-inset-bottom))", zIndex: 60 }),
+          maxWidth: 420,
+          margin: inline ? "18px auto 0" : "0 auto",
+          background: C.card,
+          border: `1px solid ${C.goldLight}`,
+          borderRadius: 16,
+          boxShadow: "0 12px 32px rgba(43,36,26,0.18)",
+          padding: "14px 14px 12px",
+          color: C.ink,
+        }}
+      >
+        <button
+          type="button"
+          aria-label="案内を閉じる"
+          onClick={closeClinicPrompt}
+          style={{ float: "right", width: 44, height: 44, margin: "-8px -8px 0 8px", border: "none", borderRadius: 999, background: "transparent", color: C.sub, fontSize: 24, lineHeight: 1 }}
+        >
+          ×
+        </button>
+        <div style={{ fontSize: 11.5, fontWeight: 800, color: C.goldDark, margin: "0 42px 8px 0", lineHeight: 1.55 }}>広告（アフィリエイト広告を含みます）</div>
+        <h2 style={{ fontFamily: SERIF, fontSize: 17, lineHeight: 1.5, margin: "0 0 7px", paddingRight: 22 }}>{title}</h2>
+        <p style={{ fontSize: 12, lineHeight: 1.7, color: C.sub, margin: "0 0 10px" }}>{body}</p>
+        {promptOffer && (
+          <div style={{ border: `1px solid ${C.line}`, background: C.champagne, borderRadius: 10, padding: "10px 11px", marginBottom: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 900 }}>{promptOffer.name}</div>
+            <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>対象エリア：東京・銀座 ／ オフィス・ホームを組み合わせたデュアルの案内</div>
+            <div style={{ fontSize: 11, color: C.ink, marginTop: 5 }}>個別ページで料金・予約前の確認事項をご覧いただけます。</div>
+          </div>
+        )}
+        <a
+          href={promptDestination}
+          target="_blank"
+          rel="noopener"
+          onClick={selectPromptDestination}
+          style={{ display: "block", background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", borderRadius: 11, padding: "12px 10px", textAlign: "center", textDecoration: "none", fontSize: 13, fontWeight: 900 }}
+        >
+          {promptOffer ? "医院の詳細・料金を見る" : "エリア・料金から探す"}
+        </a>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginTop: 10 }}>
+          <button type="button" onClick={continueSimulationFromPrompt} style={{ border: "none", padding: 0, background: "transparent", color: C.goldDark, fontSize: 11.5, fontWeight: 800, textDecoration: "underline" }}>このままシミュレーションを続ける</button>
+          <a href="/editorial-policy.html" onClick={() => trackEditorialPolicyClick("result_engagement_prompt")} style={{ color: C.sub, fontSize: 10.5, fontWeight: 700 }}>掲載・比較ポリシー</a>
+        </div>
+      </aside>
+    );
   };
 
   /* ================= UI ================= */
@@ -1693,7 +2020,7 @@ export default function WhiteningSimulator() {
                 <div style={{ fontSize: 13, fontWeight: 900, marginBottom: 8 }}>ホワイトニングの方式</div>
                 <div style={{ display: "flex", gap: 8 }}>
                   {METHODS.map((mm) => (
-                    <button key={mm.id} onClick={() => setMethod(mm.id)}
+                    <button key={mm.id} onClick={() => selectResultMethod(mm.id)}
                       style={{
                         flex: 1, borderRadius: 14, padding: "12px 4px 10px",
                         border: method === mm.id ? `2px solid ${C.gold}` : `1.5px solid ${C.line}`,
@@ -1714,9 +2041,9 @@ export default function WhiteningSimulator() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div style={{ fontSize: 13, fontWeight: 900 }}>施術回数</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <button onClick={() => setSessions(Math.max(1, sessions - 1))} style={{ width: 36, height: 36, borderRadius: 999, border: `1.5px solid ${C.line}`, background: C.card, fontSize: 18, fontWeight: 700 }}>−</button>
+                    <button onClick={() => changeResultSessions(Math.max(1, sessions - 1))} style={{ width: 36, height: 36, borderRadius: 999, border: `1.5px solid ${C.line}`, background: C.card, fontSize: 18, fontWeight: 700 }}>−</button>
                     <span style={{ fontSize: 20, fontWeight: 900, minWidth: 44, textAlign: "center" }}>{sessions}回</span>
-                    <button onClick={() => setSessions(Math.min(6, sessions + 1))} style={{ width: 36, height: 36, borderRadius: 999, border: "none", background: C.gold, color: "#fff", fontSize: 18, fontWeight: 700 }}>＋</button>
+                    <button onClick={() => changeResultSessions(Math.min(6, sessions + 1))} style={{ width: 36, height: 36, borderRadius: 999, border: "none", background: C.gold, color: "#fff", fontSize: 18, fontWeight: 700 }}>＋</button>
                   </div>
                 </div>
                 <div style={{ fontSize: 10.5, color: C.sub, marginTop: 8, lineHeight: 1.6 }}>※{m.unit}</div>
@@ -1732,7 +2059,7 @@ export default function WhiteningSimulator() {
                     ].map((o) => (
                       <button
                         key={o.idx}
-                        onClick={() => setStartShade(o.idx)}
+                        onClick={() => selectResultStartShade(o.idx)}
                         style={{
                           flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
                           borderRadius: 12, padding: "9px 4px",
@@ -1774,7 +2101,7 @@ export default function WhiteningSimulator() {
                         セルフホワイトニングは歯の表面の着色(ステイン)ケアが中心のため、目安は「本来の歯の色」までとしています。これ以上の白さをめざす場合は、歯科医院で受けられる<b>オフィス</b>や<b>ホーム</b>ホワイトニングが選択肢になります。
                       </p>
                       <button
-                        onClick={() => { setMethod("office"); track("sim_switch_office_from_self"); }}
+                        onClick={() => { selectResultMethod("office"); track("sim_switch_office_from_self"); }}
                         style={{ marginTop: 10, border: `1.5px solid ${C.gold}`, background: C.card, color: C.goldDark, fontWeight: 900, fontSize: 12, borderRadius: 999, padding: "9px 18px" }}
                       >
                         オフィスの目安に切り替えてみる →
@@ -1787,6 +2114,7 @@ export default function WhiteningSimulator() {
               {/* ---------- 代替導線: ほかの方式・お店を一覧で比較(オファーカードが本命) ---------- */}
               <button
                 onClick={() => {
+                  suppressClinicPrompt("continue_simulation", { trackDismiss: true });
                   setSimIntent({ method: m.id, methodLabel: m.label, shade: SHADES[shadeIdx].name });
                   setScreen("home");
                   track("sim_to_clinics", { method: m.id, sessions, shade: SHADES[shadeIdx].name });
@@ -1799,14 +2127,15 @@ export default function WhiteningSimulator() {
               <p style={{ fontSize: 10, color: C.sub, lineHeight: 1.6, marginTop: 14 }}>
                 ※本シミュレーションは画像演出によるイメージ(目安)であり、実際の施術効果・到達シェードを保証するものではありません。効果には個人差があります。実際にどこまで白くできるかは、歯科医院のカウンセリングでご確認ください。※アップロードした画像は端末内でのみ処理され、サーバーへの送信・保存は行いません。
               </p>
-              {editMode === "compare" && <div aria-hidden style={{ height: 76 }} />}
+              {editMode === "compare" && clinicPromptVisible && clinicPromptInline && renderClinicPrompt(true)}
+              {editMode === "compare" && <div aria-hidden style={{ height: clinicPromptVisible && !clinicPromptInline ? 176 : 76 }} />}
             </>
           )}
         </main>
       )}
 
       {/* ---------- Phase1: スマホ下部固定CTA(オファーカードが画面外のときのみ) ---------- */}
-      {screen === "sim" && editMode === "compare" && imgSrc && !offerCardVisible && (
+      {screen === "sim" && editMode === "compare" && imgSrc && !offerCardVisible && (!CLINIC_PROMPT_CONFIG.enabled || (!clinicPromptVisible && !clinicPromptSuppressed)) && (
         <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 50, background: "rgba(255,255,255,0.96)", backdropFilter: "blur(6px)", borderTop: `1px solid ${C.line}`, boxShadow: "0 -4px 16px rgba(0,0,0,0.08)", padding: "10px 16px calc(10px + env(safe-area-inset-bottom))" }}>
           <a
             href={recommendedOffer.href}
@@ -1819,6 +2148,8 @@ export default function WhiteningSimulator() {
           </a>
         </div>
       )}
+
+      {screen === "sim" && !clinicPromptInline && renderClinicPrompt(false)}
 
       {/* ---------- フッター ---------- */}
       <footer style={{ borderTop: `1px solid ${C.line}`, background: C.champagne }}>
