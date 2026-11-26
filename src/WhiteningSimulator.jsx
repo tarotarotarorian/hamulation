@@ -313,7 +313,7 @@ const AFFILIATES = [
     areaGroup: "national",
     tag: "メディカル",
     methods: ["office"],
-    price: "月額制(通い放題プランあり)",
+    price: "月額制。料金・利用条件は店舗ごとに確認",
     note: "オンライン診療+歯科医師の処方による医療ジェルを、無人サロンでセルフ照射",
     reason: "回数を重ねて、自分のペースで通いたい方に",
     cta: "プラン内容と店舗を見る →",
@@ -538,6 +538,12 @@ export default function WhiteningSimulator() {
     return (a.priority ?? 99) - (b.priority ?? 99);
   });
   const isGinzaUrgent = method === "office" && timing === "2w" && areaPreference === "ginza";
+  const isOsaka = areaPreference === "osaka_umeda";
+  const osakaComparisonUrl = "/whitening/price.html?hm_from=result_area_comparison#osaka-umeda";
+  const trackOsakaComparison = (placement) => {
+    suppressClinicPrompt("continue_simulation");
+    track("to_price_page", { source_page: "simulator", placement, target_page: "price", area_group: "osaka_umeda", method, timing });
+  };
   const recommendationRule = isGinzaUrgent ? "ginza_urgent" : "default";
   const whiteMeisterOffer = AFFILIATES.find((offer) => offer.offerId === "white-meister");
   const rankedOffers = isGinzaUrgent && whiteMeisterOffer
@@ -624,14 +630,14 @@ export default function WhiteningSimulator() {
   /* ---------- 結果画面の利用に応じた医院・料金案内 ----------
      写真・シェード等は保存も送信もしない。ここで保持するのは、同一タブで
      すでに案内を表示/操作したか、という最小限の状態だけ。 */
-  const promptAreaGroup = areaPreference === "ginza"
+  const promptAreaGroup = areaPreference === "osaka_umeda" ? "osaka_umeda" : areaPreference === "ginza"
     ? "ginza"
     : areaPreference === "other_or_undecided" ? "other_or_undecided" : "unknown";
   const promptIsConcrete = Boolean(isGinzaUrgent && whiteMeisterOffer);
   const promptOffer = promptIsConcrete ? whiteMeisterOffer : null;
   const promptDestination = promptOffer
     ? `${promptOffer.page}?hm_from=result_engagement_prompt&hm_prompt=${CLINIC_PROMPT_CONFIG.version}`
-    : `/whitening/price.html?hm_from=result_engagement_prompt&hm_prompt=${CLINIC_PROMPT_CONFIG.version}#locations`;
+    : `/whitening/price.html?hm_from=result_engagement_prompt&hm_prompt=${CLINIC_PROMPT_CONFIG.version}#${isOsaka ? "osaka-umeda" : "locations"}`;
   const promptPayload = (extra = {}) => ({
     source_page: "simulator",
     placement: CLINIC_PROMPT_CONFIG.originPlacement,
@@ -983,14 +989,14 @@ export default function WhiteningSimulator() {
     const io = new IntersectionObserver((entries) => {
       const e = entries[0];
       setOfferCardVisible(e.isIntersecting);
-      if (e.isIntersecting && impressedOfferRef.current !== recommendedOffer.offerId) {
+      if (!isOsaka && e.isIntersecting && impressedOfferRef.current !== recommendedOffer.offerId) {
         impressedOfferRef.current = recommendedOffer.offerId;
         track("offer_impression", offerParams(recommendedOffer, "result_primary"));
       }
     }, { threshold: 0.35 });
     io.observe(el);
     return () => io.disconnect();
-  }, [editMode, imgSrc, recommendedOffer.offerId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [editMode, imgSrc, recommendedOffer.offerId, isOsaka]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* --- 描画 --- */
   const cacheRef = useRef({ key: "" }); // before/after のキャッシュ(スライダー操作の軽量化)
@@ -1281,10 +1287,10 @@ export default function WhiteningSimulator() {
   const renderClinicPrompt = (inline = false) => {
     if (!CLINIC_PROMPT_CONFIG.enabled || !clinicPromptVisible) return null;
     const isSelf = method === "self";
-    const title = promptOffer
+    const title = isOsaka ? "大阪・梅田の料金と初回条件を比べる" : promptOffer
       ? "選んだ条件に近い歯科医院のご案内"
       : isSelf ? "歯科医院でのホワイトニングも比較しますか？" : "通える歯科医院・料金を見てみませんか？";
-    const body = promptOffer
+    const body = isOsaka ? "YC・パール・HAKUの店舗情報と予約前の条件を確認できます。" : promptOffer
       ? "選択中の条件に近い医院として、料金や予約前の確認事項を個別ページでご案内します。"
       : isSelf
         ? "セルフケアと、歯科医院で行う方式の違い・料金を、通えるエリアから確認できます。"
@@ -1330,7 +1336,7 @@ export default function WhiteningSimulator() {
           onClick={selectPromptDestination}
           style={{ display: "block", background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", borderRadius: 11, padding: "12px 10px", textAlign: "center", textDecoration: "none", fontSize: 13, fontWeight: 900 }}
         >
-          {promptOffer ? "医院の詳細・料金を見る" : "エリア・料金から探す"}
+          {isOsaka ? "大阪・梅田の3サービスを比べる" : promptOffer ? "医院の詳細・料金を見る" : "エリア・料金から探す"}
         </a>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginTop: 10 }}>
           <button type="button" onClick={continueSimulationFromPrompt} style={{ border: "none", padding: 0, background: "transparent", color: C.goldDark, fontSize: 11.5, fontWeight: 800, textDecoration: "underline" }}>このままシミュレーションを続ける</button>
@@ -1865,6 +1871,7 @@ export default function WhiteningSimulator() {
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
                       {[
                         { key: "ginza", label: "東京・銀座に行ける" },
+                        { key: "osaka_umeda", label: "大阪・梅田に行ける" },
                         { key: "other_or_undecided", label: "その他のエリア／未定" },
                       ].map((option) => (
                         <button
@@ -1891,13 +1898,19 @@ export default function WhiteningSimulator() {
                 <div ref={offerCardRef} style={{ marginTop: 18 }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
                     <h3 style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 600, margin: 0 }}>
-                      {primaryHeading}
+                      {isOsaka ? "大阪・梅田で探す" : primaryHeading}
                     </h3>
                   </div>
                   <div style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: "4px 10px", margin: "0 0 10px", padding: "8px 10px", border: `1px solid ${C.line}`, borderRadius: 10, background: C.champagne, color: C.ink, fontSize: 11.5, fontWeight: 700, lineHeight: 1.65 }}>
                     <span>広告（アフィリエイト広告を含みます）</span>
                     <a href="/editorial-policy.html" onClick={() => trackEditorialPolicyClick("result_offer_disclosure")} style={{ color: C.goldDark, fontWeight: 900, textUnderlineOffset: 2 }}>掲載・比較ポリシー</a>
                   </div>
+                  {isOsaka ? (
+                    <div style={{ background: C.card, borderRadius: 18, padding: 18, border: `2px solid ${C.gold}` }}>
+                      <p style={{ margin: "0 0 12px", lineHeight: 1.7 }}>YC・パール・HAKUの料金、方式、初回条件を比較できます。</p>
+                      <a href={osakaComparisonUrl} onClick={() => trackOsakaComparison("result_primary")} style={{ display: "block", textAlign: "center", background: C.goldDark, color: "#fff", fontWeight: 900, borderRadius: 14, padding: "14px 12px", textDecoration: "none" }}>大阪・梅田の3サービスの料金と初回条件を比べる</a>
+                    </div>
+                  ) : <>
                   {!recMatched && (
                     <p style={{ fontSize: 11.5, color: C.ink, lineHeight: 1.8, margin: "0 0 10px" }}>
                       セルフホワイトニングは歯の表面の着色ケアが中心です。歯そのものの色をより明るくしたい場合は、歯科医院のホワイトニングも選択肢になります。
@@ -1971,6 +1984,7 @@ export default function WhiteningSimulator() {
                       })}
                     </div>
                   </div>
+                  </>}
                   {method === "home" && (
                     <a
                       href="/whitening/home-price.html"
@@ -2138,13 +2152,13 @@ export default function WhiteningSimulator() {
       {screen === "sim" && editMode === "compare" && imgSrc && !offerCardVisible && (!CLINIC_PROMPT_CONFIG.enabled || (!clinicPromptVisible && !clinicPromptSuppressed)) && (
         <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 50, background: "rgba(255,255,255,0.96)", backdropFilter: "blur(6px)", borderTop: `1px solid ${C.line}`, boxShadow: "0 -4px 16px rgba(0,0,0,0.08)", padding: "10px 16px calc(10px + env(safe-area-inset-bottom))" }}>
           <a
-            href={recommendedOffer.href}
-            target="_blank"
-            rel="nofollow sponsored noopener"
-            onClick={() => trackOfferClick(recommendedOffer, "result_sticky")}
+            href={isOsaka ? osakaComparisonUrl : recommendedOffer.href}
+            target={isOsaka ? undefined : "_blank"}
+            rel={isOsaka ? undefined : "nofollow sponsored noopener"}
+            onClick={() => isOsaka ? trackOsakaComparison("result_sticky") : trackOfferClick(recommendedOffer, "result_sticky")}
             style={{ display: "block", maxWidth: 560, margin: "0 auto", textAlign: "center", background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`, color: "#fff", fontWeight: 900, fontSize: 14, borderRadius: 14, padding: "13px 0", textDecoration: "none", boxShadow: "0 4px 12px rgba(192,145,60,0.3)" }}
           >
-            {primaryStickyCta}
+            {isOsaka ? "大阪・梅田の3サービスの料金と初回条件を比べる" : primaryStickyCta}
           </a>
         </div>
       )}
